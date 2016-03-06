@@ -1,5 +1,5 @@
 {
-  "name": "migroose",
+  "name": "migrate-mongoose",
   "version": "0.1.0",
   "description": "A mongoose based migration framework for node",
   "main": "./dist/lib.js",
