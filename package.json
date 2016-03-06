@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "migroose": "./dist/cli.js"
+    "migrate": "./dist/cli.js"
   },
   "keywords": [
     "migrate",
@@ -31,6 +31,7 @@
     "mongoose": "^4.4.6"
   },
   "dependencies": {
+    "babel-polyfill": "^6.6.1",
     "bluebird": "^3.3.3",
     "colors": "^1.1.2",
     "mkdirp": "^0.5.1",

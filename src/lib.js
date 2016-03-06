@@ -3,6 +3,8 @@ import fs from 'fs';
 import mkdirp from 'mkdirp';
 import Promise from 'bluebird';
 import colors from 'colors';
+import mongoose from 'mongoose';
+
 import MigrationModel from './db';
 
 
@@ -55,6 +57,8 @@ export default class Migrator {
       await MigrationModel.findOne({ name: migrationName }) :
       await MigrationModel.findOne().sort({ createdAt: -1 });
 
+    if (!untilMigration) { throw new ReferenceError("There are no pending migrations."); }
+
     let query = {
       createdAt: { $lte: untilMigration.createdAt },
       state: 'down'
@@ -67,9 +71,13 @@ export default class Migrator {
       };
     }
 
+    console.log('using query', query);
+
     const sortDirection = direction == 'up' ? 1 : -1;
     const migrationsToRun = await MigrationModel.find(query)
       .sort({ createdAt: sortDirection });
+
+    console.log('found migrations', migrationsToRun);
 
     if (!migrationsToRun.length) console.warn('There are no migrations to run'.yellow);
 
@@ -77,7 +85,9 @@ export default class Migrator {
 
     for (const migration of migrationsToRun) {
       const migrationFilePath = path.join(this.migrationPath, migration.filename);
+      console.log('migration file path', migrationFilePath);
       const migrationFunctions = require(migrationFilePath);
+      console.log('Required');
 
       migrationPromises.push(await new Promise(async (resolve, reject) => {
         try {
@@ -95,7 +105,7 @@ export default class Migrator {
     }
 
 
-    await Promise.all(migrationPromises);
+    await Promise.settle(migrationPromises);
     mongoose.disconnect();
   }
 

@@ -26,6 +26,10 @@ var _colors = require('colors');
 
 var _colors2 = _interopRequireDefault(_colors);
 
+var _mongoose = require('mongoose');
+
+var _mongoose2 = _interopRequireDefault(_mongoose);
+
 var _db = require('./db');
 
 var _db2 = _interopRequireDefault(_db);
@@ -49,7 +53,7 @@ var Migrator = function () {
 
     this.template = templatePath ? _fs2.default.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = _path2.default.resolve(migrationsPath);
-    this.connection = mongoose.connect(dbConnectionUri);
+    this.connection = _mongoose2.default.connect(dbConnectionUri);
   }
 
   _createClass(Migrator, [{
@@ -136,6 +140,15 @@ var Migrator = function () {
 
               case 9:
                 untilMigration = _context4.t0;
+
+                if (untilMigration) {
+                  _context4.next = 12;
+                  break;
+                }
+
+                throw new ReferenceError("There are no pending migrations.");
+
+              case 12:
                 query = {
                   createdAt: { $lte: untilMigration.createdAt },
                   state: 'down'
@@ -149,13 +162,17 @@ var Migrator = function () {
                   };
                 }
 
+                console.log('using query', query);
+
                 sortDirection = direction == 'up' ? 1 : -1;
-                _context4.next = 15;
+                _context4.next = 18;
                 return _db2.default.find(query).sort({ createdAt: sortDirection });
 
-              case 15:
+              case 18:
                 migrationsToRun = _context4.sent;
 
+
+                console.log('found migrations', migrationsToRun);
 
                 if (!migrationsToRun.length) console.warn('There are no migrations to run'.yellow);
 
@@ -163,7 +180,7 @@ var Migrator = function () {
                 _iteratorNormalCompletion = true;
                 _didIteratorError = false;
                 _iteratorError = undefined;
-                _context4.prev = 21;
+                _context4.prev = 25;
                 _loop = regeneratorRuntime.mark(function _loop() {
                   var migration, migrationFilePath, migrationFunctions;
                   return regeneratorRuntime.wrap(function _loop$(_context3) {
@@ -172,9 +189,14 @@ var Migrator = function () {
                         case 0:
                           migration = _step.value;
                           migrationFilePath = _path2.default.join(_this.migrationPath, migration.filename);
+
+                          console.log('migration file path', migrationFilePath);
                           migrationFunctions = require(migrationFilePath);
+
+                          console.log('Required');
+
                           _context3.t0 = migrationPromises;
-                          _context3.next = 6;
+                          _context3.next = 8;
                           return new _bluebird2.default(function () {
                             var ref = _asyncToGenerator(regeneratorRuntime.mark(function _callee2(resolve, reject) {
                               return regeneratorRuntime.wrap(function _callee2$(_context2) {
@@ -185,7 +207,7 @@ var Migrator = function () {
 
                                       console.log((direction.toUpperCase() + ':   ')[direction == 'up' ? 'green' : 'red'], ' ' + migration.filename);
                                       _context2.next = 4;
-                                      return migrationFunctions[direction].call(mongoose.model.bind(mongoose));
+                                      return migrationFunctions[direction].call(_mongoose2.default.model.bind(_mongoose2.default));
 
                                     case 4:
                                       _context2.next = 6;
@@ -218,12 +240,12 @@ var Migrator = function () {
                             };
                           }());
 
-                        case 6:
+                        case 8:
                           _context3.t1 = _context3.sent;
 
                           _context3.t0.push.call(_context3.t0, _context3.t1);
 
-                        case 8:
+                        case 10:
                         case 'end':
                           return _context3.stop();
                       }
@@ -232,66 +254,66 @@ var Migrator = function () {
                 });
                 _iterator = migrationsToRun[Symbol.iterator]();
 
-              case 24:
+              case 28:
                 if (_iteratorNormalCompletion = (_step = _iterator.next()).done) {
-                  _context4.next = 29;
+                  _context4.next = 33;
                   break;
                 }
 
-                return _context4.delegateYield(_loop(), 't1', 26);
+                return _context4.delegateYield(_loop(), 't1', 30);
 
-              case 26:
+              case 30:
                 _iteratorNormalCompletion = true;
-                _context4.next = 24;
+                _context4.next = 28;
                 break;
 
-              case 29:
-                _context4.next = 35;
+              case 33:
+                _context4.next = 39;
                 break;
-
-              case 31:
-                _context4.prev = 31;
-                _context4.t2 = _context4['catch'](21);
-                _didIteratorError = true;
-                _iteratorError = _context4.t2;
 
               case 35:
                 _context4.prev = 35;
-                _context4.prev = 36;
+                _context4.t2 = _context4['catch'](25);
+                _didIteratorError = true;
+                _iteratorError = _context4.t2;
+
+              case 39:
+                _context4.prev = 39;
+                _context4.prev = 40;
 
                 if (!_iteratorNormalCompletion && _iterator.return) {
                   _iterator.return();
                 }
 
-              case 38:
-                _context4.prev = 38;
+              case 42:
+                _context4.prev = 42;
 
                 if (!_didIteratorError) {
-                  _context4.next = 41;
+                  _context4.next = 45;
                   break;
                 }
 
                 throw _iteratorError;
 
-              case 41:
-                return _context4.finish(38);
-
-              case 42:
-                return _context4.finish(35);
-
-              case 43:
-                _context4.next = 45;
-                return _bluebird2.default.all(migrationPromises);
-
               case 45:
-                mongoose.disconnect();
+                return _context4.finish(42);
 
               case 46:
+                return _context4.finish(39);
+
+              case 47:
+                _context4.next = 49;
+                return _bluebird2.default.settle(migrationPromises);
+
+              case 49:
+                _mongoose2.default.disconnect();
+
+              case 50:
               case 'end':
                 return _context4.stop();
             }
           }
-        }, _callee3, this, [[21, 31, 35, 43], [36,, 38, 42]]);
+        }, _callee3, this, [[25, 35, 39, 47], [40,, 42, 46]]);
       }));
 
       return function run(_x2, _x3) {
