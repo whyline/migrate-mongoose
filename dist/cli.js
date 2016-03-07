@@ -3,8 +3,7 @@
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-//import 'babel-polyfill';
-
+require('babel/register');
 
 var _fs = require('fs');
 
@@ -30,7 +29,7 @@ var _lib2 = _interopRequireDefault(_lib);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var _yargs$usage$command$ = _yargs2.default.usage("Usage: $0 -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]").command('list'.cyan, 'Lists all migrations and their current state.').example('$0 list').command('create <migration-name>'.cyan, 'Creates a new migration file.').example('$0 create add_users').command('up [migration-name]'.cyan, 'Migrates all the migration files that have not yet been run in chronological order. ' + 'Not including [migration-name] will run UP on all migrations that are in a DOWN state.').example('$0 up add_user').command('down <migration-name>'.cyan, 'Rolls back migrations down to given name (if down function was provided)').example('$0 down delete_names').option('d', {
+var _yargs$usage$demand$c = _yargs2.default.usage("Usage: $0 -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]").demand(1).command('list'.cyan, 'Lists all migrations and their current state.').example('$0 list').command('create <migration-name>'.cyan, 'Creates a new migration file.').example('$0 create add_users').command('up [migration-name]'.cyan, 'Migrates all the migration files that have not yet been run in chronological order. ' + 'Not including [migration-name] will run UP on all migrations that are in a DOWN state.').example('$0 up add_user').command('down <migration-name>'.cyan, 'Rolls back migrations down to given name (if down function was provided)').example('$0 down delete_names').option('d', {
   demand: true,
   type: 'string',
   alias: 'dbConnectionUri',
@@ -56,7 +55,7 @@ var _yargs$usage$command$ = _yargs2.default.usage("Usage: $0 -d <mongo-uri> [[cr
   nargs: 1
 }).help('h').alias('h', 'help');
 
-var args = _yargs$usage$command$.argv;
+var args = _yargs$usage$demand$c.argv;
 
 /*
 TODO:
@@ -65,8 +64,18 @@ TODO:
 - Add custom collection option
 */
 
-// Change directory before anything if the option was provided
+// Destructure the command and following argument
 
+var _args$_ = _slicedToArray(args._, 2);
+
+var command = _args$_[0];
+var _args$_$ = _args$_[1];
+var migrationName = _args$_$ === undefined ? args['migration-name'] : _args$_$;
+
+
+if (!command) process.exit(1);
+
+// Change directory before anything if the option was provided
 if (args.cd) process.chdir(args.cd);
 // Make sure we have a connection URI
 
@@ -81,31 +90,22 @@ var migrator = new _lib2.default({
   dbConnectionUri: args['dbConnectionUri']
 });
 
-// Destructure the command and following argument
-
-var _args$_ = _slicedToArray(args._, 2);
-
-var command = _args$_[0];
-var _args$_$ = _args$_[1];
-var migrationName = _args$_$ === undefined ? args['migration-name'] : _args$_$;
-
-
 var promise = void 0;
 switch (command) {
   case 'create':
-    validateSubArgs({ min: 1, desc: 'You must provide the name of the migration to create.'.red });
-    promise = migrator.create();
+    validateSubArgs({ min: 1, max: 1, desc: 'You must provide only the name of the migration to create.'.red });
+    promise = migrator.create(migrationName);
     promise.then(function () {
       console.log('Migration created. Run ' + ('mongoose-migrate up ' + migrationName).cyan + ' to apply the migration.');
     });
     break;
   case 'up':
     validateSubArgs({ max: 1, desc: 'Command "up" takes 0 or 1 arguments'.red });
-    promise = migrator.run(argument, 'up');
+    promise = migrator.run(migrationName, 'up');
     break;
   case 'down':
-    validateSubArgs({ min: 1, desc: 'You must provide the name of the migration to stop at when migrating down.'.red });
-    promise = migrator.run(args['migration-name'], 'down');
+    validateSubArgs({ min: 1, max: 1, desc: 'You must provide the name of the migration to stop at when migrating down.'.red });
+    promise = migrator.run(migrationName, 'down');
     break;
   case 'list':
     validateSubArgs({ max: 0, desc: 'Command "list" does not take any arguments'.yellow });
@@ -118,7 +118,7 @@ switch (command) {
 promise.then(function () {
   process.exit(0);
 }).catch(function (err) {
-  if (/no pending migrations/.test(err.message)) console.warn(err.message.yellow);else console.error(err.stack);
+  console.warn(err.message.yellow);
   process.exit(1);
 });
 
@@ -131,8 +131,8 @@ function validateSubArgs(_ref) {
 
   var argsLen = args._.length - 1;
   if (argsLen < min || argsLen > max) {
-    console.error(desc);
     _yargs2.default.showHelp();
+    console.error(desc);
     process.exit(-1);
   }
 }

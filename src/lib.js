@@ -7,6 +7,9 @@ import mongoose from 'mongoose';
 
 import MigrationModel from './db';
 
+Promise.config({
+  warnings: false
+});
 
 const defaultTemplate = `
 "use strict";
@@ -54,66 +57,57 @@ export default class Migrator {
 
   async run(migrationName, direction) {
     const untilMigration = migrationName ?
-      await MigrationModel.findOne({ name: migrationName }) :
-      await MigrationModel.findOne().sort({ createdAt: -1 });
+      await MigrationModel.findOne({name: migrationName}) :
+      await MigrationModel.findOne().sort({createdAt: -1});
 
-    if (!untilMigration) { throw new ReferenceError("There are no pending migrations."); }
+    if (!untilMigration) {
+      if (migrationName) throw new ReferenceError("Could not find that migration in the database");
+      else throw new Error("There are no pending migrations.");
+    }
 
     let query = {
-      createdAt: { $lte: untilMigration.createdAt },
+      createdAt: {$lte: untilMigration.createdAt},
       state: 'down'
     };
 
     if (direction == 'down') {
       query = {
-        createdAt: { $gte: untilMigration.createdAt },
+        createdAt: {$gte: untilMigration.createdAt},
         state: 'up'
       };
     }
 
-    console.log('using query', query);
 
     const sortDirection = direction == 'up' ? 1 : -1;
     const migrationsToRun = await MigrationModel.find(query)
-      .sort({ createdAt: sortDirection });
+      .sort({createdAt: sortDirection});
 
-    console.log('found migrations', migrationsToRun);
+    if (!migrationsToRun.length) throw new Error('There are no migrations to run'.yellow);
 
-    if (!migrationsToRun.length) console.warn('There are no migrations to run'.yellow);
-
-    let migrationPromises = [];
-
-    for (const migration of migrationsToRun) {
-      const migrationFilePath = path.join(this.migrationPath, migration.filename);
-      console.log('migration file path', migrationFilePath);
+    let self = this;
+    await Promise.map(migrationsToRun, async (migration) => {
+      const migrationFilePath = path.join(self.migrationPath, migration.filename);
       const migrationFunctions = require(migrationFilePath);
-      console.log('Required');
+      try {
+        console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'], ` ${migration.filename}`);
+        await migrationFunctions[direction].call(mongoose.model.bind(mongoose));
+        await MigrationModel.where({name: migration.name}).update({$set: {state: direction}}).exec();
+      }
+      catch(err) {
+        console.error(`Failed to run migration ${migration.name}. Not continuing. Make sure your data is in consistent state`.red);
+        throw err;
+      }
+    });
 
-      migrationPromises.push(await new Promise(async (resolve, reject) => {
-        try {
-          console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'], ` ${migration.filename}`);
-          await migrationFunctions[direction].call(mongoose.model.bind(mongoose));
-          await MigrationModel.update({ name: migration.name }, { $set: {state: direction }});
-          resolve();
-        }
-        catch(err) {
-          console.error(`Failed to run migration ${migration.name}. Not continuing. Make sure your data is in consistent state`.red);
-          console.error('Details: ', err.stack);
-          reject(err);
-        }
-      }));
-    }
-
-
-    await Promise.settle(migrationPromises);
-    mongoose.disconnect();
+    console.log('All migrations finished successfully.'.green);
   }
 
 
   static async list() {
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
+    if (!migrations.length) console.log('There are no migrations to list.'.yellow);
     for (const m of migrations){
-      console.log(`${m.state.toUpperCase()}:   `[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`);
+      console.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`);
     }
   }
 }

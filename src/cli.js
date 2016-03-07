@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
-//import 'babel-polyfill';
+import 'babel/register';
+
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
@@ -11,7 +12,7 @@ import Migrator from './lib';
 
 const  { argv: args } = yargs
   .usage("Usage: $0 -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]")
-
+  .demand(1)
   .command('list'.cyan, 'Lists all migrations and their current state.')
   .example('$0 list')
 
@@ -65,6 +66,11 @@ TODO:
 - Add custom collection option
 */
 
+// Destructure the command and following argument
+const [ command, migrationName = args['migration-name'] ] = args._;
+
+if (!command) process.exit(1);
+
 // Change directory before anything if the option was provided
 if (args.cd) process.chdir(args.cd);
 // Make sure we have a connection URI
@@ -80,25 +86,24 @@ let migrator = new Migrator({
   dbConnectionUri: args['dbConnectionUri']
 });
 
-// Destructure the command and following argument
-const [ command, migrationName = args['migration-name'] ] = args._;
+
 
 let promise;
 switch(command) {
   case 'create':
-    validateSubArgs({ min: 1, desc: 'You must provide the name of the migration to create.'.red });
-    promise = migrator.create();
+    validateSubArgs({ min: 1, max: 1, desc: 'You must provide only the name of the migration to create.'.red });
+    promise = migrator.create(migrationName);
     promise.then(()=> {
       console.log(`Migration created. Run `+ `mongoose-migrate up ${migrationName}`.cyan + ` to apply the migration.`);
     });
     break;
   case 'up':
     validateSubArgs({ max: 1, desc: 'Command "up" takes 0 or 1 arguments'.red });
-    promise = migrator.run(argument, 'up');
+    promise = migrator.run(migrationName, 'up');
     break;
   case 'down':
-    validateSubArgs({ min: 1, desc: 'You must provide the name of the migration to stop at when migrating down.'.red });
-    promise = migrator.run(args['migration-name'], 'down');
+    validateSubArgs({ min: 1, max: 1, desc: 'You must provide the name of the migration to stop at when migrating down.'.red });
+    promise = migrator.run(migrationName, 'down');
     break;
   case 'list':
     validateSubArgs({ max: 0, desc: 'Command "list" does not take any arguments'.yellow });
@@ -111,8 +116,7 @@ switch(command) {
 promise
   .then(() => { process.exit(0); })
   .catch((err) => {
-    if (/no pending migrations/.test(err.message)) console.warn(err.message.yellow);
-    else console.error(err.stack);
+    console.warn(err.message.yellow);
     process.exit(1);
   });
 
@@ -120,8 +124,8 @@ promise
 function validateSubArgs({ min = 0, max = Infinity, desc }) {
   const argsLen = args._.length - 1;
   if (argsLen < min || argsLen > max) {
-    console.error(desc);
     yargs.showHelp();
+    console.error(desc);
     process.exit(-1);
   }
 }

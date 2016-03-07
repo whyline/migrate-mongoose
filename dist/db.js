@@ -28,15 +28,11 @@ _mongoose2.default.connection.on('error', function (err) {
   console.error('MongoDB Connection Error: ' + err);
 });
 
-_mongoose2.default.connection.on('disconnected', function () {
-  console.error('MongoDB Connection Disconnected');
-});
-
 process.on('SIGINT', function () {
-  _mongoose2.default.connection.close(function () {
-    console.log('Mongoose connection disconnected through app termination');
-    process.exit(0);
-  });
+  _mongoose2.default.connection.close();
+});
+process.on('exit', function () {
+  _mongoose2.default.connection.close();
 });
 
 exports.default = _mongoose2.default.model('migration', MigrationSchema);
