@@ -1,7 +1,5 @@
 #! /usr/bin/env node
 
-import 'babel/register';
-
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
@@ -34,6 +32,10 @@ const  { argv: args } = yargs
     description: 'The URI of the database connection'.yellow,
     nargs: 1
   })
+  .option('es6', {
+    type: 'boolean',
+    description: 'use es6 migration template?',
+  })
   .option('md', {
     alias: 'migrations-dir',
     description: 'The path to the migration files',
@@ -61,8 +63,9 @@ const  { argv: args } = yargs
 
 /*
 TODO:
+ - Add prune option
+ - Add Options file support
 - Add Env Support
-- Add Options file support
 - Add custom collection option
 */
 
@@ -72,9 +75,9 @@ const [ command, migrationName = args['migration-name'] ] = args._;
 if (!command) process.exit(1);
 
 // Change directory before anything if the option was provided
-if (args.cd) process.chdir(args.cd);
-// Make sure we have a connection URI
+if (args.c) process.chdir(args.c);
 
+// Make sure we have a connection URI
 if (!args.dbConnectionUri) {
   console.error('You need to provide the Mongo URI to persist migration status.\nUse option --dbConnectionUri / -d to provide the URI.'.red);
   process.exit(1);
@@ -83,7 +86,8 @@ if (!args.dbConnectionUri) {
 let migrator = new Migrator({
   migrationsPath:  path.resolve(args['migrations-dir']),
   templatePath: args['template-file'],
-  dbConnectionUri: args['dbConnectionUri']
+  dbConnectionUri: args['dbConnectionUri'],
+  es6Templates: args['es6']
 });
 
 
@@ -117,6 +121,7 @@ promise
   .then(() => { process.exit(0); })
   .catch((err) => {
     console.warn(err.message.yellow);
+    console.warn(err.stack);
     process.exit(1);
   });
 

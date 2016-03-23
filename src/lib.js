@@ -7,12 +7,13 @@ import mongoose from 'mongoose';
 
 import MigrationModel from './db';
 
+
 Promise.config({
   warnings: false
 });
 
-const defaultTemplate = `
-"use strict";
+const es6Template =
+`'use strict';
 
 /**
  * Make any changes you need to make to the database here
@@ -27,9 +28,29 @@ export async function down() {
 }
 `;
 
+const es5Template =
+`'use strict';
+
+/**
+ * Make any changes you need to make to the database here
+ */
+exports.up = function up (done) {
+  done();
+};
+
+/**
+ * Make any changes that UNDO the up function side effects here (if possible)
+ */
+exports.down = function down(done) {
+  done();
+};
+`;
+
+
 
 export default class Migrator {
-  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri }) {
+  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false }) {
+    const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
     this.connection = mongoose.connect(dbConnectionUri);
@@ -86,11 +107,18 @@ export default class Migrator {
 
     let self = this;
     await Promise.map(migrationsToRun, async (migration) => {
-      const migrationFilePath = path.join(self.migrationPath, migration.filename);
-      const migrationFunctions = require(migrationFilePath);
       try {
+        const migrationFilePath = path.join(self.migrationPath, migration.filename);
+        const migrationFunctions = require(migrationFilePath);
+        console.log('functions: ', migrationFunctions);
+
         console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'], ` ${migration.filename}`);
-        await migrationFunctions[direction].call(mongoose.model.bind(mongoose));
+        await new Promise(function(resolve, reject) {
+          migrationFunctions[direction].call(mongoose.model.bind(mongoose), async function callback(err) {
+            if (err) reject(err);
+            resolve();
+          });
+        });
         await MigrationModel.where({name: migration.name}).update({$set: {state: direction}}).exec();
       }
       catch(err) {
