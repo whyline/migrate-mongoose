@@ -2,10 +2,10 @@
   "name": "migrate-mongoose",
   "version": "0.1.2",
   "description": "A mongoose based migration framework for node",
-  "main": "./dist/lib.js",
+  "main": "./dist/cli.js",
   "scripts": {
-    "transpile": "babel -d dist/ src/",
-    "prepublish": "npm run transpile",
+    "prepublish": "babel -d dist/ src/",
+    "postpublish": "rm -r ./dist",
     "test": "echo \"Error: no test zspecified\" && exit 1"
   },
   "bin": {
