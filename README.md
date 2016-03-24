@@ -73,6 +73,8 @@ Examples:
   node_modules/.bin/migrate down delete_names
   node_modules/.bin/migrate prune
 ```
+
+
 #### Setting Options Automatically
 If you want to not provide the options such as `--dbConnectionUri` to the program every time you have 2 options.
 
@@ -88,6 +90,7 @@ migrate list
 # Otherwise you can provide a config file
 migrate list --config somePath/myCustomConfigFile[.json]
 ```
+
 
 **Override Order:**
 1. Command line args
@@ -143,8 +146,7 @@ example: `-d mongo://localhost:27017/migrations`
 
 
 ### Roadmap
-- Add support for `options` file so you don't have to keep specifying the same options over and over
-- Add option to use a different instead of the default `migrations` collection
+- Add option to use a different collection instead of the default `migrations` collection
 - Transpile ES6 migration files to ES5 automatically when running migrations
 
 
