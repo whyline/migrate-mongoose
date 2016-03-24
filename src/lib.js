@@ -4,6 +4,9 @@ import mkdirp from 'mkdirp';
 import Promise from 'bluebird';
 import colors from 'colors';
 import mongoose from 'mongoose';
+import _ from 'lodash';
+import ask from 'inquirer';
+
 
 import MigrationModel from './db';
 
@@ -136,6 +139,72 @@ export default class Migrator {
     if (!migrations.length) console.log('There are no migrations to list.'.yellow);
     for (const m of migrations){
       console.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`);
+    }
+  }
+
+  async prune() {
+    try {
+      const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
+      const migrationsInDatabase = await MigrationModel.find({});
+      // Go over migrations in folder and delete any files not in DB
+      const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js/.test(file) )
+        .map(filename => {
+          const fileCreatedAt = parseInt(filename.split('-')[0]);
+          const existsInDatabase = !!_.find(migrationsInDatabase, { createdAt: new Date(fileCreatedAt) });
+          return { createdAt: fileCreatedAt, filename,  existsInDatabase };
+        });
+
+
+      const filesNotInDb = _.filter(migrationsInFolder, { existsInDatabase: false }).map( f => f.filename );
+
+      if (filesNotInDb.length) {
+        const answers =  await new Promise(function(resolve) {
+          ask.prompt({
+            type: 'checkbox',
+            message: 'The following migrations exist in the migrations folder but not in the database. Select the ones you want to remove from the file system.',
+            name: 'filesToDelete',
+            choices: filesNotInDb
+          }, (answers) => {
+            resolve(answers);
+          });
+        });
+
+        for (const fileToDelete of answers.filesToDelete) {
+          const filePath= path.join(this.migrationPath, fileToDelete);
+          console.log(`Removing ${filePath} from file system`);
+          fs.unlinkSync(filePath);
+        }
+      }
+
+      const dbMigrationsNotOnFs = _.filter(migrationsInDatabase, m => {
+        return !_.find(migrationsInFolder, { filename: m.filename })
+      });
+
+      if (dbMigrationsNotOnFs.length) {
+        const answers =  await new Promise(function(resolve) {
+          ask.prompt({
+            type: 'checkbox',
+            message: 'The following migrations exist in the database but not in the migrations folder. Select the ones you want to remove from the file system.',
+            name: 'migrationsToDelete',
+            choices: dbMigrationsNotOnFs
+          }, (answers) => {
+            resolve(answers);
+          });
+        });
+
+
+        if (answers.migrationsToDelete.length) {
+          console.log(`Removing migration(s) `, `${answers.migrationsToDelete.join(', ')}`.cyan, ` from database`);
+          await MigrationModel.remove({
+            name: { $in: answers.migrationsToDelete }
+          });
+        }
+      }
+    }
+    catch(error) {
+      console.error(`Could not prune extraneous migrations.`.red);
+      console.log(error);
+      throw error;
     }
   }
 }

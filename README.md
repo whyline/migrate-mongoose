@@ -40,8 +40,7 @@ migrate [command] [options]
 
 ### Usage
 ```
-Usage: migrate -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]
-
+Usage: migrate -d <mongo-uri> [[create|up|down<migration-name>]|list] [optional options]
 
 Commands:
   list                     Lists all migrations and their current state.
@@ -50,17 +49,29 @@ Commands:
                            been run in chronological order. Not including
                            [migration-name] will run UP on all migrations that
                            are in a DOWN state.
-  down <migration-name>    Rolls back migrations down to given name (if down
+  down <migration-name>    Rolls back all migrations down to given name (if down
                            function was provided)
-
-
+  prune                    Allows you to delete extraneous migrations by
+                           removing extraneous local migration files/database
+                           migrations.
+ 
+ 
 Options:
-  -d, --dbConnectionUri   The URI of the database connection                      [string] [required]
-  --es6                   use es6 migration template when creating new migrations           [boolean]
-  --md, --migrations-dir  The path to the migration files          [string] [default: "./migrations"]
-  -t, --template-file     The template file to use when creating a migration                 [string]
-  -c, --change-dir        Change current working directory before running                    [string]
-  -h, --help              Show help                                                         [boolean]
+  -d, --dbConnectionUri   The URI of the database connection               [string] [required]
+  --es6                   use es6 migration template?                                [boolean]
+  --md, --migrations-dir  The path to the migration files   [string] [default: "./migrations"]
+  -t, --template-file     The template file to use when creating a migration          [string]
+  -c, --change-dir        Change current working directory before running  anything   [string]
+  -h, --help              Show help                                                  [boolean]
+
+ 
+ 
+Examples:
+  node_modules/.bin/migrate list
+  node_modules/.bin/migrate create add_users
+  node_modules/.bin/migrate up add_user
+  node_modules/.bin/migrate down delete_names
+  node_modules/.bin/migrate prune
 ```
 
 #### Migration Files
@@ -105,16 +116,12 @@ exports.down = function down(done) {
 ### Notes
 
 1. Currently, the **-d**/**dbConnectionUri**  must be provided along with the database you want to use.
-example:
-```
--d mongo://localhost:27017/migrations
-```
+example: `-d mongo://localhost:27017/migrations`
 2. Currently the framework uses the `migrations` collection to keep track of migrations
 
 
 
 ### Roadmap
-- Add prune option to remove any migrations from the database that are currently not in the `migrations` folder
 - Add support for `options` file so you don't have to keep specifying the same options over and over
 - Add option to use a different instead of the default `migrations` collection
 - Transpile ES6 migration files to ES5 automatically when running migrations

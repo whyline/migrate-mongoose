@@ -25,6 +25,9 @@ const  { argv: args } = yargs
   .command('down <migration-name>'.cyan, 'Rolls back migrations down to given name (if down function was provided)')
   .example('$0 down delete_names')
 
+  .command('prune'.cyan, 'Allows you to delete extraneous migrations by removing extraneous local migration files/database migrations.')
+  .example('$0 prune')
+
   .option('d', {
     demand: true,
     type: 'string',
@@ -63,7 +66,6 @@ const  { argv: args } = yargs
 
 /*
 TODO:
- - Add prune option
  - Add Options file support
 - Add Env Support
 - Add custom collection option
@@ -112,6 +114,10 @@ switch(command) {
   case 'list':
     validateSubArgs({ max: 0, desc: 'Command "list" does not take any arguments'.yellow });
     promise = Migrator.list();
+    break;
+  case 'prune':
+    validateSubArgs({ max: 0, desc: 'Command "prune" does not take any arguments'.yellow });
+    promise = migrator.prune();
     break;
   default:
     yargs.showHelp();
