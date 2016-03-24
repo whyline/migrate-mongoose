@@ -73,6 +73,27 @@ Examples:
   node_modules/.bin/migrate down delete_names
   node_modules/.bin/migrate prune
 ```
+#### Setting Options Automatically
+If you want to not provide the options such as `--dbConnectionUri` to the program every time you have 2 options.
+
+**1. Set the option as an Environment Variable with the prefix MIGRATE_**
+```
+export MIGRATE_dbConnectionUri=localhost/migrations
+```
+**2. Provide a config file (defaults to *migrate.json*)**
+```bash
+# If you have migrate.json in the directory, you don't need to do anything
+migrate list
+ 
+# Otherwise you can provide a config file
+migrate list --config somePath/myCustomConfigFile[.json]
+```
+
+**Override Order:**
+1. Command line args
+2. Config file
+3. Env var
+
 
 #### Migration Files
 Here's how you can access your `mongoose` models and handle errors in your migrations (ES5 Example)

@@ -8,9 +8,16 @@ import 'colors';
 
 import Migrator from './lib';
 
-const  { argv: args } = yargs
-  .usage("Usage: $0 -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]")
+'use strict';
+
+let  { argv: args } = yargs
+  .usage("Usage: migrate -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]")
   .demand(1)
+
+  .default('config', 'migrate.json')
+  .config('config', 'filepath to an options configuration json file')
+  .env('MIGRATE')
+
   .command('list'.cyan, 'Lists all migrations and their current state.')
   .example('$0 list')
 
@@ -27,7 +34,6 @@ const  { argv: args } = yargs
 
   .command('prune'.cyan, 'Allows you to delete extraneous migrations by removing extraneous local migration files/database migrations.')
   .example('$0 prune')
-
   .option('d', {
     demand: true,
     type: 'string',
@@ -64,10 +70,9 @@ const  { argv: args } = yargs
   .help('h')
   .alias('h', 'help');
 
+
 /*
 TODO:
- - Add Options file support
-- Add Env Support
 - Add custom collection option
 */
 
@@ -91,7 +96,6 @@ let migrator = new Migrator({
   dbConnectionUri: args['dbConnectionUri'],
   es6Templates: args['es6']
 });
-
 
 
 let promise;
@@ -121,6 +125,7 @@ switch(command) {
     break;
   default:
     yargs.showHelp();
+    process.exit(0);
 }
 
 promise
@@ -130,6 +135,7 @@ promise
     console.warn(err.stack);
     process.exit(1);
   });
+
 
 
 function validateSubArgs({ min = 0, max = Infinity, desc }) {
