@@ -7,9 +7,7 @@ import mongoose from 'mongoose';
 import _ from 'lodash';
 import ask from 'inquirer';
 
-
 import MigrationModel from './db';
-
 
 Promise.config({
   warnings: false
@@ -57,6 +55,7 @@ export default class Migrator {
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
     this.connection = mongoose.connect(dbConnectionUri);
+    this.es6 = es6Templates;
   }
 
   async create(migrationName) {
@@ -106,31 +105,56 @@ export default class Migrator {
     const migrationsToRun = await MigrationModel.find(query)
       .sort({createdAt: sortDirection});
 
-    if (!migrationsToRun.length) throw new Error('There are no migrations to run'.yellow);
+    if (!migrationsToRun.length) {
+      console.warn('There are no migrations to run'.yellow);
+      console.log(`Current Migrations' Statuses: `);
+      await Migrator.list();
+      process.exit(0)
+    }
 
     let self = this;
     await Promise.map(migrationsToRun, async (migration) => {
       try {
         const migrationFilePath = path.join(self.migrationPath, migration.filename);
-        const migrationFunctions = require(migrationFilePath);
-        console.log('functions: ', migrationFunctions);
 
+        if (this.es6) {
+          require('babel-register')({
+            "presets": [require("babel-preset-stage-0"),  require("babel-preset-es2015")],
+            "plugins": [require("babel-plugin-transform-runtime")]
+          });
+
+          require('babel-polyfill');
+        }
+
+        const migrationFunctions = require(migrationFilePath);
         console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'], ` ${migration.filename}`);
-        await new Promise(function(resolve, reject) {
-          migrationFunctions[direction].call(mongoose.model.bind(mongoose), async function callback(err) {
+
+
+        await new Promise( (resolve, reject) => {
+          const callPromise =  migrationFunctions[direction].call(mongoose.model.bind(mongoose), async function callback(err) {
             if (err) reject(err);
             resolve();
           });
+
+          if (typeof callPromise.then === 'function') {
+            callPromise.then(resolve).catch(reject);
+          }
         });
+
         await MigrationModel.where({name: migration.name}).update({$set: {state: direction}}).exec();
+        console.log('All migrations finished successfully.'.green);
       }
       catch(err) {
-        console.error(`Failed to run migration ${migration.name}. Not continuing. Make sure your data is in consistent state`.red);
-        throw err;
+        console.error(`Failed to run migration ${migration.name} due to an error.`.red);
+        console.error(`Not continuing. Make sure your data is in consistent state`.red);
+
+        if (err.message && /Unexpected token/.test(err.message)) console.warn('If you are using an ES6 migration file, use option --es6'.yellow);
+        else {
+          const error = err instanceof(Error) ? err : new Error(err);
+          throw error;
+        }
       }
     });
-
-    console.log('All migrations finished successfully.'.green);
   }
 
 

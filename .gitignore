@@ -4,3 +4,6 @@ dist
 
 # npm debug logs
 npm-debug.log
+
+# Webstorm
+.idea

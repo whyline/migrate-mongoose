@@ -12,7 +12,11 @@ migrate-mongoose is a migration framework for projects which are already using m
 
 **migrate-mongoose:**
 - Stores migration state in MongoDB
-- Provides plenty of configuration such as
+- Provides plenty of features such as 
+    - Access to mongoose models in migrations
+    - Use of promises or standard callbacks
+    - custom config filies or env variables for migration options
+    - ability to delete unused migrations
 - Relies on a simple *GLOBAL* state of whether or not each migration has been called 
     
 
@@ -58,7 +62,7 @@ Commands:
  
 Options:
   -d, --dbConnectionUri   The URI of the database connection               [string] [required]
-  --es6                   use es6 migration template?                                [boolean]
+  --es6                   use es6 migration templates?                               [boolean]
   --md, --migrations-dir  The path to the migration files   [string] [default: "./migrations"]
   -t, --template-file     The template file to use when creating a migration          [string]
   -c, --change-dir        Change current working directory before running  anything   [string]
@@ -99,7 +103,9 @@ migrate list --config somePath/myCustomConfigFile[.json]
 
 
 #### Migration Files
-Here's how you can access your `mongoose` models and handle errors in your migrations (ES5 Example)
+Here's how you can access your `mongoose` models and handle errors in your migrations
+
+**ES5 Example**
 ```javascript
 'use strict';
 
@@ -135,6 +141,60 @@ exports.down = function down(done) {
 };
 ```
 
+**ES6 Example**
+```javascript
+/**
+ * Easy flow control
+ */
+export async function up(done) {
+  // Error handling is as easy as throwing an error  
+  if (condition) {
+    throw new Error('This is an error. Could not complete migration');  
+  }
+  
+  // You can just run your updates and when function finishes the migration is assumed to be done!
+  await new Promise((res, rej) => {
+    setTimeout(()=> { res('ok'); }, 3000);
+  });
+  
+  // ========  OR ===========
+  // just return the promise! It will succeed when it resolves or fail when rejected 
+  return lib.getPromise();
+  
+  
+  // You can still use the done callback if you want!
+  if (error) done(error);
+  else done();
+}
+```
+
+
+**Access to mongoose models**
+
+```javascript
+// Lets say you have a user model like this
+
+// models/User.js
+const UserSchema = new Schema({
+  firstName: String,
+  lastName: String,
+});
+
+module.exports = mongoose.model('user', UserSchema);
+
+// 1459287720919-my-migration.js
+export async function up() {
+  // Then you can access it in the migration like so  
+  await this('user').update({}, {
+    $rename: { firstName: 'first' }
+  }, { multi: true });
+  
+  // Or something such as
+ const users = this('user').find();
+ /* Do something with users */
+ 
+}
+```
 
 
 ### Notes
@@ -147,7 +207,6 @@ example: `-d mongo://localhost:27017/migrations`
 
 ### Roadmap
 - Add option to use a different collection instead of the default `migrations` collection
-- Transpile ES6 migration files to ES5 automatically when running migrations
 
 
 ### How to contribute

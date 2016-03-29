@@ -23,5 +23,3 @@ process.on('exit', () => { mongoose.connection.close(); });
 
 export default mongoose.model('migration', MigrationSchema);
 
-
-
