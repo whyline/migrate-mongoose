@@ -121,7 +121,7 @@ switch(command) {
     break;
   case 'prune':
     validateSubArgs({ max: 0, desc: 'Command "prune" does not take any arguments'.yellow });
-    promise = migrator.prune();
+    promise = Migrator.prune();
     break;
   default:
     yargs.showHelp();

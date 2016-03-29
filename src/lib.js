@@ -150,8 +150,7 @@ export default class Migrator {
 
         if (err.message && /Unexpected token/.test(err.message)) console.warn('If you are using an ES6 migration file, use option --es6'.yellow);
         else {
-          const error = err instanceof(Error) ? err : new Error(err);
-          throw error;
+          throw err instanceof(Error) ? err : new Error(err);
         }
       }
     });
@@ -166,7 +165,7 @@ export default class Migrator {
     }
   }
 
-  async prune() {
+  static async prune() {
     try {
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
       const migrationsInDatabase = await MigrationModel.find({});
