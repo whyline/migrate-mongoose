@@ -48,6 +48,10 @@ exports.down = function down(done) {
 };
 `;
 
+/**
+ * Print a message to the stder and quit process
+ * @param {strint} message - the message to print. Can be styled.
+ */
 function errorQuit(message) {
   console.error(message);
   process.exit(1);

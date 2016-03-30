@@ -201,9 +201,9 @@ export async function up() {
 
 ### Notes
 
-1. Currently, the **-d**/**dbConnectionUri**  must be provided along with the database you want to use.
-example: `-d mongo://localhost:27017/migrations`
-2. Currently the framework uses the `migrations` collection to keep track of migrations
+Currently, the **-d**/**dbConnectionUri**  must include the database to use for migrations in the uri.
+example: `-d mongo://localhost:27017/migrations` . If you don't want to pass it in every time feel free to use the
+`migrate.json` config file or an environment variable
 
 
 ### How to contribute
