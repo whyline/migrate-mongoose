@@ -117,11 +117,11 @@ switch(command) {
     break;
   case 'list':
     validateSubArgs({ max: 0, desc: 'Command "list" does not take any arguments'.yellow });
-    promise = Migrator.list();
+    promise = migrator.list();
     break;
   case 'prune':
     validateSubArgs({ max: 0, desc: 'Command "prune" does not take any arguments'.yellow });
-    promise = Migrator.prune();
+    promise = migrator.prune();
     break;
   default:
     yargs.showHelp();
