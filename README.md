@@ -44,7 +44,7 @@ migrate [command] [options]
 
 ### Usage
 ```
-Usage: migrate -d <mongo-uri> [[create|up|down<migration-name>]|list] [optional options]
+Usage: migrate -d <mongo-uri> [[create|up|down<migration-name>]|list|prune] [optional options]
 
 Commands:
   list                     Lists all migrations and their current state.
@@ -61,21 +61,23 @@ Commands:
  
  
 Options:
-  -d, --dbConnectionUri   The URI of the database connection               [string] [required]
-  --es6                   use es6 migration templates?                               [boolean]
-  --md, --migrations-dir  The path to the migration files   [string] [default: "./migrations"]
-  -t, --template-file     The template file to use when creating a migration          [string]
-  -c, --change-dir        Change current working directory before running  anything   [string]
-  -h, --help              Show help                                                  [boolean]
+  -d, --dbConnectionUri   The URI of the database connection                           [string] [required]
+  --collection            The mongo collection name to use for migrations [string] [default: "migrations"]
+  --es6                   use es6 migration templates?                                           [boolean]
+  --md, --migrations-dir  The path to the migration files               [string] [default: "./migrations"]
+  -t, --template-file     The template file to use when creating a migration                      [string]
+  -c, --change-dir        Change current working directory before running  anything               [string]
+  -h, --help              Show help                                                              [boolean]
 
  
  
 Examples:
-  node_modules/.bin/migrate list
-  node_modules/.bin/migrate create add_users
-  node_modules/.bin/migrate up add_user
-  node_modules/.bin/migrate down delete_names
-  node_modules/.bin/migrate prune
+  node_modules/.bin/migrate list -d mongodb://localhost/migrations
+  node_modules/.bin/migrate create add_users -d mongodb://localhost/migrations
+  node_modules/.bin/migrate up add_user -d mongodb://localhost/migrations
+  node_modules/.bin/migrate down delete_names -d mongodb://localhost/migrations
+  node_modules/.bin/migrate prune -d mongodb://localhost/migrations
+  node_modules/.bin/migrate list --config settings.json
 ```
 
 
@@ -202,11 +204,6 @@ export async function up() {
 1. Currently, the **-d**/**dbConnectionUri**  must be provided along with the database you want to use.
 example: `-d mongo://localhost:27017/migrations`
 2. Currently the framework uses the `migrations` collection to keep track of migrations
-
-
-
-### Roadmap
-- Add option to use a different collection instead of the default `migrations` collection
 
 
 ### How to contribute
