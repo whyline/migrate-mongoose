@@ -67,8 +67,10 @@ export default class Migrator {
 
   async create(migrationName) {
     try {
-      await this.sync();
+      const existingMigration = await MigrationModel.findOne({ name: migrationName });
+      if (!!existingMigration) return errorQuit(`There is already a migration with name '${migrationName}' in the database`.red);
 
+      await this.sync();
       const now = Date.now();
       const newMigrationFile = `${now}-${migrationName}.js`;
       mkdirp.sync(this.migrationPath);
