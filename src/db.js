@@ -1,25 +1,31 @@
 import mongoose, { Schema } from 'mongoose';
+// Factory function for a mongoose model
 
-const MigrationSchema = new Schema({
-  name: String,
-  createdAt: Date,
-  state: {
-    type: String,
-    enum: ['down', 'up'],
-    default: 'down'
-  }
-});
+export default function ( collection = 'migrations' ) {
 
-MigrationSchema.virtual('filename').get(function() {
-  return `${this.createdAt.getTime()}-${this.name}.js`;
-});
+  const MigrationSchema = new Schema({
+    name: String,
+    createdAt: Date,
+    state: {
+      type: String,
+      enum: ['down', 'up'],
+      default: 'down'
+    }
+  }, {
+    collection: collection
+  });
 
-mongoose.connection.on('error', err => {
-  console.error(`MongoDB Connection Error: ${err}`);
-});
+  MigrationSchema.virtual('filename').get(function() {
+    return `${this.createdAt.getTime()}-${this.name}.js`;
+  });
 
-process.on('SIGINT', () => { mongoose.connection.close(); });
-process.on('exit', () => { mongoose.connection.close(); });
+  mongoose.connection.on('error', err => {
+    console.error(`MongoDB Connection Error: ${err}`);
+  });
 
-export default mongoose.model('migration', MigrationSchema);
+  process.on('SIGINT', () => { mongoose.connection.close(); });
+  process.on('exit', () => { mongoose.connection.close(); });
+
+  return mongoose.model( collection, MigrationSchema );
+}
 

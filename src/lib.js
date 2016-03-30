@@ -7,7 +7,8 @@ import mongoose from 'mongoose';
 import _ from 'lodash';
 import ask from 'inquirer';
 
-import MigrationModel from './db';
+import MigrationModelFactory from './db';
+let MigrationModel;
 
 Promise.config({
   warnings: false
@@ -54,12 +55,14 @@ function errorQuit(message) {
 
 
 export default class Migrator {
-  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false }) {
+  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false, collectionName = 'migrations' }) {
     const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
     this.connection = mongoose.connect(dbConnectionUri);
     this.es6 = es6Templates;
+    this.collection = collectionName;
+    MigrationModel = MigrationModelFactory(collectionName);
   }
 
   async create(migrationName) {
@@ -116,11 +119,12 @@ export default class Migrator {
     if (!migrationsToRun.length) {
       console.warn('There are no migrations to run'.yellow);
       console.log(`Current Migrations' Statuses: `);
-      await Migrator.list();
+      await this.list();
       process.exit(0)
     }
 
     let self = this;
+    let numMigrationsRan = 0;
     await Promise.map(migrationsToRun, async (migration) => {
       try {
         const migrationFilePath = path.join(self.migrationPath, migration.filename);
@@ -153,7 +157,7 @@ export default class Migrator {
         });
 
         await MigrationModel.where({name: migration.name}).update({$set: {state: direction}}).exec();
-        console.log('All migrations finished successfully.'.green);
+        numMigrationsRan++;
       }
       catch(err) {
         console.error(`Failed to run migration ${migration.name} due to an error.`.red);
@@ -165,6 +169,8 @@ export default class Migrator {
         }
       }
     });
+
+    if (migrationsToRun.length == numMigrationsRan) console.log('All migrations finished successfully.'.green);
   }
 
   /**

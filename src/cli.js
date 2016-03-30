@@ -34,6 +34,12 @@ let  { argv: args } = yargs
 
   .command('prune'.cyan, 'Allows you to delete extraneous migrations by removing extraneous local migration files/database migrations.')
   .example('$0 prune')
+  .option('collection', {
+    type: 'string',
+    default: 'migrations',
+    description: 'The collection to use for the migrations',
+    nargs: 1
+  })
   .option('d', {
     demand: true,
     type: 'string',
@@ -70,12 +76,6 @@ let  { argv: args } = yargs
   .help('h')
   .alias('h', 'help');
 
-
-/*
-TODO:
-- Add custom collection option
-*/
-
 // Destructure the command and following argument
 const [ command, migrationName = args['migration-name'] ] = args._;
 
@@ -94,9 +94,9 @@ let migrator = new Migrator({
   migrationsPath:  path.resolve(args['migrations-dir']),
   templatePath: args['template-file'],
   dbConnectionUri: args['dbConnectionUri'],
-  es6Templates: args['es6']
+  es6Templates: args['es6'],
+  collectionName:  args['collection']
 });
-
 
 let promise;
 switch(command) {
