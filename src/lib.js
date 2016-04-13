@@ -59,13 +59,14 @@ function errorQuit(message) {
 
 
 export default class Migrator {
-  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false, collectionName = 'migrations' }) {
+  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false, collectionName = 'migrations', autosync = false }) {
     const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
     this.connection = mongoose.connect(dbConnectionUri);
     this.es6 = es6Templates;
     this.collection = collectionName;
+    this.autosync = autosync;
     MigrationModel = MigrationModelFactory(collectionName);
   }
 
@@ -199,18 +200,25 @@ export default class Migrator {
 
       if (filesNotInDb.length) {
         console.log('Synchronizing database with file system migrations...');
-        const answers = await new Promise(function (resolve) {
-          ask.prompt({
-            type: 'checkbox',
-            message: 'The following migrations exist in the migrations folder but not in the database. Select the ones you want to import into the database',
-            name: 'migrationsToImport',
-            choices: filesNotInDb
-          }, (answers) => {
-            resolve(answers);
-          });
-        });
+        let migrationsToImport = filesNotInDb;
 
-        for (const migrationToImport of answers.migrationsToImport) {
+        if (!this.autosync) {
+          const answers = await new Promise(function (resolve) {
+            ask.prompt({
+              type: 'checkbox',
+              message: 'The following migrations exist in the migrations folder but not in the database. Select the ones you want to import into the database',
+              name: 'migrationsToImport',
+              choices: filesNotInDb
+            }, (answers) => {
+              resolve(answers);
+            });
+          });
+
+          migrationsToImport = answers.migrationsToImport;
+        }
+
+
+        for (const migrationToImport of migrationsToImport) {
           const filePath = path.join(this.migrationPath, migrationToImport),
             timestampSeparatorIndex = migrationToImport.indexOf('-'),
             timestamp = migrationToImport.slice(0, timestampSeparatorIndex),

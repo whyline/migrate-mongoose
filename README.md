@@ -67,6 +67,8 @@ Options:
   --md, --migrations-dir  The path to the migration files               [string] [default: "./migrations"]
   -t, --template-file     The template file to use when creating a migration                      [string]
   -c, --change-dir        Change current working directory before running  anything               [string]
+  --autosync              Automatically import any migrations in the migrations directory        [boolean]
+                          rather than asking interactively (use in scripts)
   -h, --help              Show help                                                              [boolean]
 
  

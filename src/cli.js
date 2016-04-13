@@ -49,7 +49,7 @@ let  { argv: args } = yargs
   })
   .option('es6', {
     type: 'boolean',
-    description: 'use es6 migration template?',
+    description: 'use es6 migration template?'
   })
   .option('md', {
     alias: 'migrations-dir',
@@ -73,6 +73,12 @@ let  { argv: args } = yargs
     description: 'Change current working directory before running anything',
     nargs: 1
   })
+
+  .option('autosync', {
+    type: 'boolean',
+    description: 'Automatically add new migrations in the migrations folder to the database instead of asking interactively'
+  })
+
   .help('h')
   .alias('h', 'help');
 
@@ -93,9 +99,10 @@ if (!args.dbConnectionUri) {
 let migrator = new Migrator({
   migrationsPath:  path.resolve(args['migrations-dir']),
   templatePath: args['template-file'],
-  dbConnectionUri: args['dbConnectionUri'],
-  es6Templates: args['es6'],
-  collectionName:  args['collection']
+  dbConnectionUri: args.dbConnectionUri,
+  es6Templates: args.es6,
+  collectionName:  args.collection,
+  autosync: args.autosync
 });
 
 let promise;
