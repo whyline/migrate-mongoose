@@ -189,7 +189,7 @@ export default class Migrator {
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
       const migrationsInDatabase = await MigrationModel.find({});
       // Go over migrations in folder and delete any files not in DB
-      const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js/.test(file))
+      const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js$/.test(file))
         .map(filename => {
           const fileCreatedAt = parseInt(filename.split('-')[0]);
           const existsInDatabase = !!_.find(migrationsInDatabase, {createdAt: new Date(fileCreatedAt)});
