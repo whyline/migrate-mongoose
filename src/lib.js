@@ -132,7 +132,7 @@ export default class Migrator {
 
     let self = this;
     let numMigrationsRan = 0;
-    await Promise.map(migrationsToRun, async (migration) => {
+    for (const migration of migrationsToRun) {
       try {
         const migrationFilePath = path.join(self.migrationPath, migration.filename);
 
@@ -149,11 +149,8 @@ export default class Migrator {
 
         if (!migrationFunctions[direction]) errorQuit(`The ${direction} export is not defined in ${migration.filename}.`.red);
 
-        console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'], ` ${migration.filename}`);
-
-
         await new Promise( (resolve, reject) => {
-          const callPromise =  migrationFunctions[direction].call(mongoose.model.bind(mongoose), async function callback(err) {
+          const callPromise =  migrationFunctions[direction].call(mongoose.model.bind(mongoose), function callback(err) {
             if (err) reject(err);
             resolve();
           });
@@ -163,7 +160,9 @@ export default class Migrator {
           }
         });
 
-        await MigrationModel.where({name: migration.name}).update({$set: {state: direction}}).exec();
+        console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'] + ` ${migration.filename} `);
+
+        await MigrationModel.where({name: migration.name}).update({$set: {state: direction}});
         numMigrationsRan++;
       }
       catch(err) {
@@ -175,7 +174,7 @@ export default class Migrator {
           throw err instanceof(Error) ? err : new Error(err);
         }
       }
-    });
+    };
 
     if (migrationsToRun.length == numMigrationsRan) console.log('All migrations finished successfully.'.green);
   }
