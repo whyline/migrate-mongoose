@@ -75,7 +75,7 @@ export default class Migrator {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
       if (!!existingMigration) return errorQuit(`There is already a migration with name '${migrationName}' in the database`.red);
 
-      await this.sync();
+      await this.prune();
       const now = Date.now();
       const newMigrationFile = `${now}-${migrationName}.js`;
       mkdirp.sync(this.migrationPath);
@@ -95,7 +95,7 @@ export default class Migrator {
   }
 
   async run(migrationName, direction) {
-    await this.sync();
+    await this.prune();
 
     const untilMigration = migrationName ?
       await MigrationModel.findOne({name: migrationName}) :
@@ -174,7 +174,7 @@ export default class Migrator {
           throw err instanceof(Error) ? err : new Error(err);
         }
       }
-    };
+    }
 
     if (migrationsToRun.length == numMigrationsRan) console.log('All migrations finished successfully.'.green);
   }
@@ -256,24 +256,28 @@ export default class Migrator {
       });
 
 
-      if (dbMigrationsNotOnFs.length) {
-        const answers =  await new Promise(function(resolve) {
+      let migrationsToDelete = dbMigrationsNotOnFs.map( m => m.name );
+
+      if (!this.autosync && !!migrationsToDelete.length) {
+        const answers = await new Promise(function (resolve) {
           ask.prompt({
             type: 'checkbox',
             message: 'The following migrations exist in the database but not in the migrations folder. Select the ones you want to remove from the file system.',
             name: 'migrationsToDelete',
-            choices: dbMigrationsNotOnFs
+            choices: migrationsToDelete
           }, (answers) => {
             resolve(answers);
           });
         });
 
-        if (answers.migrationsToDelete.length) {
-          console.log(`Removing migration(s) `, `${answers.migrationsToDelete.join(', ')}`.cyan, ` from database`);
-          await MigrationModel.remove({
-            name: { $in: answers.migrationsToDelete }
-          });
-        }
+        migrationsToDelete = answers.migrationsToDelete;
+      }
+
+      if (migrationsToDelete.length) {
+        console.log(`Removing migration(s) `, `${migrationsToDelete.join(', ')}`.cyan, ` from database`);
+        await MigrationModel.remove({
+          name: { $in: migrationsToDelete }
+        });
       }
     }
     catch(error) {
@@ -283,7 +287,7 @@ export default class Migrator {
   }
 
   async list() {
-    await this.sync();
+    await this.prune();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
     if (!migrations.length) console.log('There are no migrations to list.'.yellow);
     for (const m of migrations){
