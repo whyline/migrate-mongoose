@@ -1,6 +1,6 @@
 {
   "name": "migrate-mongoose",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "A mongoose based migration framework for node",
   "main": "./dist/cli.js",
   "scripts": {
