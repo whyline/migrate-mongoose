@@ -76,7 +76,7 @@ export default class Migrator {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
       if (!!existingMigration) return errorQuit(`There is already a migration with name '${migrationName}' in the database`.red);
 
-      await this.prune();
+      await this.sync();
       const now = Date.now();
       const newMigrationFile = `${now}-${migrationName}.js`;
       mkdirp.sync(this.migrationPath);
@@ -96,7 +96,7 @@ export default class Migrator {
   }
 
   async run(migrationName, direction) {
-    await this.prune();
+    await this.sync();
 
     const untilMigration = migrationName ?
       await MigrationModel.findOne({name: migrationName}) :
@@ -242,8 +242,6 @@ export default class Migrator {
 
   async prune() {
     try {
-      await this.sync();
-
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
       const migrationsInDatabase = await MigrationModel.find({});
       // Go over migrations in folder and delete any files not in DB
@@ -290,7 +288,7 @@ export default class Migrator {
   }
 
   async list() {
-    await this.prune();
+    await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
     if (!migrations.length) console.log('There are no migrations to list.'.yellow);
     for (const m of migrations){
