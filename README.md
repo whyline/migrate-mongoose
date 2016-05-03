@@ -15,7 +15,7 @@ migrate-mongoose is a migration framework for projects which are already using m
 - Provides plenty of features such as 
     - Access to mongoose models in migrations
     - Use of promises or standard callbacks
-    - custom config filies or env variables for migration options
+    - custom config files or env variables for migration options
     - ability to delete unused migrations
 - Relies on a simple *GLOBAL* state of whether or not each migration has been called 
     
@@ -35,7 +35,7 @@ and then run
 
 Install it globally
 ```
- npm install -f migrate-mongoose
+ npm install -g migrate-mongoose
 ```
 and then run
 ```
@@ -67,7 +67,7 @@ Options:
   --md, --migrations-dir  The path to the migration files               [string] [default: "./migrations"]
   -t, --template-file     The template file to use when creating a migration                      [string]
   -c, --change-dir        Change current working directory before running  anything               [string]
-  --autosync              Automatically import any migrations in the migrations directory        [boolean]
+  --autosync              Automatically add any migrations on filesystem but not in db to db     [boolean]
                           rather than asking interactively (use in scripts)
   -h, --help              Show help                                                              [boolean]
 
@@ -101,9 +101,12 @@ migrate list --config somePath/myCustomConfigFile[.json]
 
 
 **Override Order:**
+
 1. Command line args
 2. Config file
 3. Env var
+
+With lower number taking precedence (winning). 
 
 
 #### Migration Files
@@ -150,25 +153,22 @@ exports.down = function down(done) {
 /**
  * Easy flow control
  */
-export async function up(done) {
+// Notice no need for callback 
+export async function up() {
   // Error handling is as easy as throwing an error  
   if (condition) {
     throw new Error('This is an error. Could not complete migration');  
   }
   
   // You can just run your updates and when function finishes the migration is assumed to be done!
-  await new Promise((res, rej) => {
-    setTimeout(()=> { res('ok'); }, 3000);
+  await new Promise((resolve, reject) => {
+    setTimeout(()=> { resolve('ok'); }, 3000);
   });
   
   // ========  OR ===========
   // just return the promise! It will succeed when it resolves or fail when rejected 
   return lib.getPromise();
   
-  
-  // You can still use the done callback if you want!
-  if (error) done(error);
-  else done();
 }
 ```
 
@@ -204,7 +204,7 @@ export async function up() {
 ### Notes
 
 Currently, the **-d**/**dbConnectionUri**  must include the database to use for migrations in the uri.
-example: `-d mongo://localhost:27017/migrations` . If you don't want to pass it in every time feel free to use the
+example: `-d mongo://localhost:27017/development` . If you don't want to pass it in every time feel free to use the
 `migrate.json` config file or an environment variable
 
 

@@ -15,18 +15,19 @@ Promise.config({
 });
 
 const es6Template =
-`'use strict';
-
+`
 /**
  * Make any changes you need to make to the database here
  */
 export async function up() {
+  // Write migration here
 }
 
 /**
  * Make any changes that UNDO the up function side effects here (if possible)
  */
 export async function down() {
+  // Write migration here
 }
 `;
 
@@ -149,13 +150,14 @@ export default class Migrator {
 
         if (!migrationFunctions[direction]) errorQuit(`The ${direction} export is not defined in ${migration.filename}.`.red);
 
+
         await new Promise( (resolve, reject) => {
           const callPromise =  migrationFunctions[direction].call(mongoose.model.bind(mongoose), function callback(err) {
-            if (err) reject(err);
+            if (err) return reject(err);
             resolve();
           });
 
-          if (typeof callPromise.then === 'function') {
+          if (callPromise && typeof callPromise.then === 'function') {
             callPromise.then(resolve).catch(reject);
           }
         });
@@ -170,6 +172,7 @@ export default class Migrator {
         console.error(`Not continuing. Make sure your data is in consistent state`.red);
 
         if (err.message && /Unexpected token/.test(err.message)) errorQuit('If you are using an ES6 migration file, use option --es6'.yellow);
+
         else {
           throw err instanceof(Error) ? err : new Error(err);
         }
