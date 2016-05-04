@@ -95,6 +95,12 @@ export default class Migrator {
     }
   }
 
+  /**
+   * Runs migrations up to or down to a given migration name
+   *
+   * @param migrationName
+   * @param direction
+   */
   async run(migrationName, direction) {
     await this.sync();
 
@@ -185,6 +191,8 @@ export default class Migrator {
   /**
    * Looks at the file system migrations and imports any migrations that are
    * on the file system but missing in the database into the database
+   *
+   * This functionality is opposite of prune()
    */
   async sync() {
     try {
@@ -240,6 +248,10 @@ export default class Migrator {
     }
   }
 
+  /**
+   * Opposite of sync().
+   * Removes files in migration directory which don't exist in database.
+   */
   async prune() {
     try {
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
@@ -287,6 +299,9 @@ export default class Migrator {
     }
   }
 
+  /**
+   * Lists the current migrations and their statuses
+   */
   async list() {
     await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });

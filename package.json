@@ -2,7 +2,7 @@
   "name": "migrate-mongoose",
   "version": "1.6.4",
   "description": "A mongoose based migration framework for node",
-  "main": "./dist/cli.js",
+  "main": "./dist/lib.js",
   "scripts": {
     "prepublish": "scripts/prepublish.sh",
     "postpublish": "rm -r ./dist",
