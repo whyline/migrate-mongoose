@@ -64,11 +64,11 @@ export default class Migrator {
     const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
-    this.connection = mongoose.connect(dbConnectionUri);
+    this.connection = mongoose.createConnection(dbConnectionUri);
     this.es6 = es6Templates;
     this.collection = collectionName;
     this.autosync = autosync;
-    MigrationModel = MigrationModelFactory(collectionName);
+    MigrationModel = MigrationModelFactory(collectionName, this.connection);
   }
 
   async create(migrationName) {
@@ -301,14 +301,24 @@ export default class Migrator {
 
   /**
    * Lists the current migrations and their statuses
+   * @returns {Promise<Array<Object>>}
+   * @example
+   *   [
+   *    { name: 'my-migration', filename: '149213223424_my-migration.js', state: 'up' },
+   *    { name: 'add-cows', filename: '149213223453_add-cows.js', state: 'down' }
+   *   ]
    */
   async list() {
     await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
     if (!migrations.length) console.log('There are no migrations to list.'.yellow);
+    const migrationStates = [];
     for (const m of migrations){
       console.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`);
+      migrationStates.push({ name: m.name, filename: m.filename, state: m.state });
     }
+
+    return migrationStates;
   }
 }
 

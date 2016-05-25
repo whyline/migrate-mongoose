@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 // Factory function for a mongoose model
 
-export default function ( collection = 'migrations' ) {
+export default function ( collection = 'migrations', dbConnection ) {
 
   const MigrationSchema = new Schema({
     name: String,
@@ -19,13 +19,13 @@ export default function ( collection = 'migrations' ) {
     return `${this.createdAt.getTime()}-${this.name}.js`;
   });
 
-  mongoose.connection.on('error', err => {
+  dbConnection.on('error', err => {
     console.error(`MongoDB Connection Error: ${err}`);
   });
 
-  process.on('SIGINT', () => { mongoose.connection.close(); });
-  process.on('exit', () => { mongoose.connection.close(); });
+  process.on('SIGINT', () => { dbConnection.close(); });
+  process.on('exit', () => { dbConnection.close(); });
 
-  return mongoose.model( collection, MigrationSchema );
+  return dbConnection.model( collection, MigrationSchema );
 }
 
