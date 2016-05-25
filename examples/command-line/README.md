@@ -92,7 +92,7 @@ Synchronizing database with file system migrations...
 ❯◯ 1463003339853-add_unicorns.js
 ```
 This is telling you that someone added a migration file that's your database doesn't have yet.
-If you select it by pressing **Space* then **Enter** on your keyboard, you can tell `migrate-mongoose` to import it into the database.
+If you select it by pressing **Space** then **Enter** on your keyboard, you can tell `migrate-mongoose` to import it into the database.
 
 Once imported, the default state is DOWN so you'll have to `migrate up add_unicorns` to be all up-to-date.
 
