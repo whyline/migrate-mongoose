@@ -1,0 +1,5 @@
+{
+  "dbConnectionUri": "mongodb://localhost/db-dev",
+  "migrationsDir": "db/migrations",
+  "es6": true
+}
