@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import mkdirp from 'mkdirp';
 import Promise from 'bluebird';
-import colors from 'colors';
+import 'colors';
 import mongoose from 'mongoose';
 import _ from 'lodash';
 import ask from 'inquirer';
@@ -19,14 +19,14 @@ const es6Template =
 /**
  * Make any changes you need to make to the database here
  */
-export async function up() {
+export async function up () {
   // Write migration here
 }
 
 /**
  * Make any changes that UNDO the up function side effects here (if possible)
  */
-export async function down() {
+export async function down () {
   // Write migration here
 }
 `;
@@ -51,7 +51,7 @@ exports.down = function down(done) {
 
 /**
  * Print a message to the stder and quit process
- * @param {strint} message - the message to print. Can be styled.
+ * @param {string} message - the message to print. Can be styled.
  */
 function errorQuit(message) {
   console.error(message);
@@ -330,3 +330,7 @@ function fileRequired(error) {
     process.exit(1);
   }
 }
+
+
+module.exports = Migrator;
+
