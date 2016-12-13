@@ -158,7 +158,7 @@ export default class Migrator {
 
 
         await new Promise( (resolve, reject) => {
-          const callPromise =  migrationFunctions[direction].call(mongoose.model.bind(mongoose), function callback(err) {
+          const callPromise =  migrationFunctions[direction].call(this.connection.model.bind(this.connection), function callback(err) {
             if (err) return reject(err);
             resolve();
           });
