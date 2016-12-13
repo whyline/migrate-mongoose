@@ -6,6 +6,7 @@
   "scripts": {
     "prepublish": "scripts/prepublish.sh",
     "postpublish": "rm -r ./dist",
+    "postversion": "git push && git push --tags",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
