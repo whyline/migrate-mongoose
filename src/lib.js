@@ -201,7 +201,7 @@ export default class Migrator {
         this.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'] + ` ${migration.filename} `);
 
         await MigrationModel.where({name: migration.name}).update({$set: {state: direction}});
-        migrationsRan.push(migration);
+        migrationsRan.push(migration.toJSON());
         numMigrationsRan++;
       } catch(err) {
         this.log(`Failed to run migration ${migration.name} due to an error.`.red);
@@ -257,10 +257,11 @@ export default class Migrator {
           migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
 
         this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-        return MigrationModel.create({
+        const createdMigration = MigrationModel.create({
           name: migrationName,
           createdAt: timestamp
         });
+        return createdMigration.toJSON();
       });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
@@ -275,7 +276,7 @@ export default class Migrator {
   async prune() {
     try {
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
-      const migrationsInDatabase = await MigrationModel.find({});
+      const migrationsInDatabase = await MigrationModel.find({}).lean();
       // Go over migrations in folder and delete any files not in DB
       const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js/.test(file) )
         .map(filename => {
@@ -306,6 +307,11 @@ export default class Migrator {
         migrationsToDelete = answers.migrationsToDelete;
       }
 
+      const migrationsToDeleteDocs = await MigrationModel
+        .find({
+          name: { $in: migrationsToDelete }
+        }).lean();
+
       if (migrationsToDelete.length) {
         this.log(`Removing migration(s) `, `${migrationsToDelete.join(', ')}`.cyan, ` from database`);
         await MigrationModel.remove({
@@ -313,7 +319,7 @@ export default class Migrator {
         });
       }
 
-      return migrationsToDelete;
+      return migrationsToDeleteDocs;
     } catch(error) {
       this.log(`Could not prune extraneous migrations from database.`.red);
       throw error;
@@ -339,7 +345,7 @@ export default class Migrator {
         `${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'] +
         ` ${m.filename}`
       );
-      return { name: m.name, filename: m.filename, state: m.state };
+      return m.toJSON();
     });
   }
 }

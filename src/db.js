@@ -14,7 +14,16 @@ export default function ( collection = 'migrations', dbConnection ) {
       default: 'down'
     }
   }, {
-    collection: collection
+    collection: collection,
+    toJSON: {
+      virtuals: true,
+      transform: function(doc, ret, options) {
+        delete ret._id;
+        delete ret.id;
+        delete ret.__v;
+        return ret;
+      }
+    }
   });
 
   MigrationSchema.virtual('filename').get(function() {
