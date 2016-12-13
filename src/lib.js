@@ -6,6 +6,8 @@ import 'colors';
 import mongoose from 'mongoose';
 import _ from 'lodash';
 import ask from 'inquirer';
+import { NodeVM } from 'vm2';
+import { transformFileSync } from 'babel-core';
 
 import MigrationModelFactory from './db';
 let MigrationModel;
@@ -49,14 +51,6 @@ exports.down = function down(done) {
 };
 `;
 
-/**
- * Print a message to the stder and quit process
- * @param {string} message - the message to print. Can be styled.
- */
-function errorQuit(message) {
-  console.error(message);
-  process.exit(1);
-}
 
 export default class Migrator {
   constructor({
@@ -80,7 +74,7 @@ export default class Migrator {
   }
 
   log (logString, force = false) {
-    if (force || !this.cli) {
+    if (force || this.cli) {
       console.log(logString);
     }
   }
@@ -150,26 +144,39 @@ export default class Migrator {
       if (this.cli) {
         this.log('There are no migrations to run'.yellow);
         this.log(`Current Migrations' Statuses: `);
-        await this.list(true);
+        await this.list();
       }
-
       throw new Error('There are no migrations to run');
     }
 
     let self = this;
     let numMigrationsRan = 0;
     let migrationsRan = [];
+
     for (const migration of migrationsToRun) {
       const migrationFilePath = path.join(self.migrationPath, migration.filename);
-
+      const modulesPath = path.resolve(__dirname, '../', 'node_modules');
       let migrationFunctions;
+      let code = fs.readFileSync(migrationFilePath);
+      if (this.es6) {
+        code = transformFileSync(migrationFilePath, {
+          extends: path.resolve(__dirname, '../.babelrc')
+        }).code;
+      }
+      const vm = new NodeVM({
+        console: 'inherit',
+        require: {
+          external: true
+        }
+      });
+
       try {
-        migrationFunctions = require(migrationFilePath);
-      } catch (er) {
-        er.message = err.message && /Unexpected token/.test(err.message) ?
+        migrationFunctions = vm.run(code, migrationFilePath);
+      } catch (err) {
+        err.message = err.message && /Unexpected token/.test(err.message) ?
           'Unexpected Token when parsing migration. If you are using an ES6 migration file, use option --es6' :
-          er.message;
-        throw er;
+          err.message;
+        throw err;
       }
 
       if (!migrationFunctions[direction]) {
@@ -226,40 +233,35 @@ export default class Migrator {
         });
 
       const filesNotInDb = _.filter(migrationsInFolder, {existsInDatabase: false}).map(f => f.filename);
-
-      const createdMigrations = await Promise.map(filesNotInDb, async (migrationsToImport) => {
-        this.log('Synchronizing database with file system migrations...');
-
-        if (!this.autosync) {
-          const answers = await new Promise(function (resolve) {
-            ask.prompt({
-              type: 'checkbox',
-              message: 'The following migrations exist in the migrations folder but not in the database. Select the ones you want to import into the database',
-              name: 'migrationsToImport',
-              choices: filesNotInDb
-            }, (answers) => {
-              resolve(answers);
-            });
-          });
-
-          migrationsToImport = answers.migrationsToImport;
-        }
-
-        return Promise.map(migrationsToImport, (migrationToImport) => {
-          const filePath = path.join(this.migrationPath, migrationToImport),
-            timestampSeparatorIndex = migrationToImport.indexOf('-'),
-            timestamp = migrationToImport.slice(0, timestampSeparatorIndex),
-            migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
-
-          this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-          return MigrationModel.create({
-            name: migrationName,
-            createdAt: timestamp
+      let migrationsToImport = filesNotInDb;
+      this.log('Synchronizing database with file system migrations...');
+      if (!this.autosync && migrationsToImport.length) {
+        const answers = await new Promise(function (resolve) {
+          ask.prompt({
+            type: 'checkbox',
+            message: 'The following migrations exist in the migrations folder but not in the database. Select the ones you want to import into the database',
+            name: 'migrationsToImport',
+            choices: filesNotInDb
+          }, (answers) => {
+            resolve(answers);
           });
         });
-      });
 
-      return createdMigrations;
+        migrationsToImport = answers.migrationsToImport;
+      }
+
+      return Promise.map(migrationsToImport, (migrationToImport) => {
+        const filePath = path.join(this.migrationPath, migrationToImport),
+          timestampSeparatorIndex = migrationToImport.indexOf('-'),
+          timestamp = migrationToImport.slice(0, timestampSeparatorIndex),
+          migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
+
+        this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
+        return MigrationModel.create({
+          name: migrationName,
+          createdAt: timestamp
+        });
+      });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
       throw error;
@@ -327,17 +329,18 @@ export default class Migrator {
    *    { name: 'add-cows', filename: '149213223453_add-cows.js', state: 'down' }
    *   ]
    */
-  async list(printToStdout = this.cli) {
+  async list() {
     await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
     if (!migrations.length) this.log('There are no migrations to list.'.yellow);
     const migrationStates = [];
-    for (const m of migrations){
-      this.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`, printToStdout);
-      migrationStates.push({ name: m.name, filename: m.filename, state: m.state });
-    }
-
-    return migrationStates;
+    return migrations.map((m) => {
+      this.log(
+        `${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'] +
+        ` ${m.filename}`
+      );
+      return { name: m.name, filename: m.filename, state: m.state };
+    });
   }
 }
 
