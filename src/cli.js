@@ -117,11 +117,11 @@ switch(command) {
     break;
   case 'up':
     validateSubArgs({ max: 1, desc: 'Command "up" takes 0 or 1 arguments'.red });
-    promise = migrator.run(migrationName, 'up');
+    promise = migrator.run('up', migrationName);
     break;
   case 'down':
     validateSubArgs({ min: 1, max: 1, desc: 'You must provide the name of the migration to stop at when migrating down.'.red });
-    promise = migrator.run(migrationName, 'down');
+    promise = migrator.run('down', migrationName);
     break;
   case 'list':
     validateSubArgs({ max: 0, desc: 'Command "list" does not take any arguments'.yellow });

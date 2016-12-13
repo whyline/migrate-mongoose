@@ -111,7 +111,7 @@ export default class Migrator {
    * @param migrationName
    * @param direction
    */
-  async run(migrationName, direction) {
+  async run(direction = 'up', migrationName) {
     await this.sync();
 
     const untilMigration = migrationName ?
