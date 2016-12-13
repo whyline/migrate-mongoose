@@ -102,7 +102,8 @@ let migrator = new Migrator({
   dbConnectionUri: args.dbConnectionUri,
   es6Templates: args.es6,
   collectionName:  args.collection,
-  autosync: args.autosync
+  autosync: args.autosync,
+  cli: true
 });
 
 let promise;
@@ -139,7 +140,6 @@ promise
   .then(() => { process.exit(0); })
   .catch((err) => {
     console.warn(err.message.yellow);
-    console.warn(err.stack);
     process.exit(1);
   });
 

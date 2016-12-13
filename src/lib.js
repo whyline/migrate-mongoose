@@ -58,9 +58,16 @@ function errorQuit(message) {
   process.exit(1);
 }
 
-
 export default class Migrator {
-  constructor({ templatePath, migrationsPath = './migrations',  dbConnectionUri, es6Templates = false, collectionName = 'migrations', autosync = false }) {
+  constructor({
+    templatePath,
+    migrationsPath = './migrations',
+    dbConnectionUri,
+    es6Templates = false,
+    collectionName = 'migrations',
+    autosync = false,
+    cli = false
+  }) {
     const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
@@ -68,13 +75,22 @@ export default class Migrator {
     this.es6 = es6Templates;
     this.collection = collectionName;
     this.autosync = autosync;
+    this.cli = cli;
     MigrationModel = MigrationModelFactory(collectionName, this.connection);
+  }
+
+  log (logString, force = false) {
+    if (force || !this.cli) {
+      console.log(logString);
+    }
   }
 
   async create(migrationName) {
     try {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
-      if (!!existingMigration) return errorQuit(`There is already a migration with name '${migrationName}' in the database`.red);
+      if (!!existingMigration) {
+        throw new Error(`There is already a migration with name '${migrationName}' in the database`.red);
+      }
 
       await this.sync();
       const now = Date.now();
@@ -83,14 +99,14 @@ export default class Migrator {
       fs.writeFileSync(path.join(this.migrationPath, newMigrationFile), this.template);
       // create instance in db
       await this.connection;
-      await MigrationModel.create({
+      const migrationCreated = await MigrationModel.create({
         name: migrationName,
         createdAt: now
       });
-      console.log(`Created migration ${migrationName} in ${this.migrationPath}.`);
-    }
-    catch(error){
-      console.error(error.stack);
+      this.log(`Created migration ${migrationName} in ${this.migrationPath}.`);
+      return migrationCreated;
+    } catch(error){
+      this.log(error.stack);
       fileRequired(error);
     }
   }
@@ -131,61 +147,64 @@ export default class Migrator {
       .sort({createdAt: sortDirection});
 
     if (!migrationsToRun.length) {
-      console.warn('There are no migrations to run'.yellow);
-      console.log(`Current Migrations' Statuses: `);
-      await this.list();
-      process.exit(0)
+      if (this.cli) {
+        this.log('There are no migrations to run'.yellow);
+        this.log(`Current Migrations' Statuses: `);
+        await this.list(true);
+      }
+
+      throw new Error('There are no migrations to run');
     }
 
     let self = this;
     let numMigrationsRan = 0;
+    let migrationsRan = [];
     for (const migration of migrationsToRun) {
+      const migrationFilePath = path.join(self.migrationPath, migration.filename);
+
+      let migrationFunctions;
       try {
-        const migrationFilePath = path.join(self.migrationPath, migration.filename);
+        migrationFunctions = require(migrationFilePath);
+      } catch (er) {
+        er.message = err.message && /Unexpected token/.test(err.message) ?
+          'Unexpected Token when parsing migration. If you are using an ES6 migration file, use option --es6' :
+          er.message;
+        throw er;
+      }
 
-        if (this.es6) {
-          require('babel-register')({
-            "presets": [require("babel-preset-stage-0"),  require("babel-preset-es2015")],
-            "plugins": [require("babel-plugin-transform-runtime")]
-          });
+      if (!migrationFunctions[direction]) {
+        throw new Error (`The ${direction} export is not defined in ${migration.filename}.`.red);
+      }
 
-          require('babel-polyfill');
-        }
-
-        const migrationFunctions = require(migrationFilePath);
-
-        if (!migrationFunctions[direction]) errorQuit(`The ${direction} export is not defined in ${migration.filename}.`.red);
-
-
+      try {
         await new Promise( (resolve, reject) => {
-          const callPromise =  migrationFunctions[direction].call(this.connection.model.bind(this.connection), function callback(err) {
-            if (err) return reject(err);
-            resolve();
-          });
+          const callPromise =  migrationFunctions[direction].call(
+            this.connection.model.bind(this.connection),
+            function callback(err) {
+              if (err) return reject(err);
+              resolve();
+            }
+          );
 
           if (callPromise && typeof callPromise.then === 'function') {
             callPromise.then(resolve).catch(reject);
           }
         });
 
-        console.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'] + ` ${migration.filename} `);
+        this.log(`${direction.toUpperCase()}:   `[direction == 'up'? 'green' : 'red'] + ` ${migration.filename} `);
 
         await MigrationModel.where({name: migration.name}).update({$set: {state: direction}});
+        migrationsRan.push(migration);
         numMigrationsRan++;
-      }
-      catch(err) {
-        console.error(`Failed to run migration ${migration.name} due to an error.`.red);
-        console.error(`Not continuing. Make sure your data is in consistent state`.red);
-
-        if (err.message && /Unexpected token/.test(err.message)) errorQuit('If you are using an ES6 migration file, use option --es6'.yellow);
-
-        else {
-          throw err instanceof(Error) ? err : new Error(err);
-        }
+      } catch(err) {
+        this.log(`Failed to run migration ${migration.name} due to an error.`.red);
+        this.log(`Not continuing. Make sure your data is in consistent state`.red);
+        throw err instanceof(Error) ? err : new Error(err);
       }
     }
 
-    if (migrationsToRun.length == numMigrationsRan) console.log('All migrations finished successfully.'.green);
+    if (migrationsToRun.length == numMigrationsRan) this.log('All migrations finished successfully.'.green);
+    return migrationsRan;
   }
 
   /**
@@ -208,9 +227,8 @@ export default class Migrator {
 
       const filesNotInDb = _.filter(migrationsInFolder, {existsInDatabase: false}).map(f => f.filename);
 
-      if (filesNotInDb.length) {
-        console.log('Synchronizing database with file system migrations...');
-        let migrationsToImport = filesNotInDb;
+      const createdMigrations = await Promise.map(filesNotInDb, async (migrationsToImport) => {
+        this.log('Synchronizing database with file system migrations...');
 
         if (!this.autosync) {
           const answers = await new Promise(function (resolve) {
@@ -227,23 +245,23 @@ export default class Migrator {
           migrationsToImport = answers.migrationsToImport;
         }
 
-
-        for (const migrationToImport of migrationsToImport) {
+        return Promise.map(migrationsToImport, (migrationToImport) => {
           const filePath = path.join(this.migrationPath, migrationToImport),
             timestampSeparatorIndex = migrationToImport.indexOf('-'),
             timestamp = migrationToImport.slice(0, timestampSeparatorIndex),
             migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
 
-          console.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-          await MigrationModel.create({
+          this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
+          return MigrationModel.create({
             name: migrationName,
             createdAt: timestamp
           });
-        }
-      }
-    }
-    catch (error) {
-      console.error(`Could not synchronise migrations in the migrations folder up to the database.`.red);
+        });
+      });
+
+      return createdMigrations;
+    } catch (error) {
+      this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
       throw error;
     }
   }
@@ -287,14 +305,15 @@ export default class Migrator {
       }
 
       if (migrationsToDelete.length) {
-        console.log(`Removing migration(s) `, `${migrationsToDelete.join(', ')}`.cyan, ` from database`);
+        this.log(`Removing migration(s) `, `${migrationsToDelete.join(', ')}`.cyan, ` from database`);
         await MigrationModel.remove({
           name: { $in: migrationsToDelete }
         });
       }
-    }
-    catch(error) {
-      console.error(`Could not prune extraneous migrations from database.`.red);
+
+      return migrationsToDelete;
+    } catch(error) {
+      this.log(`Could not prune extraneous migrations from database.`.red);
       throw error;
     }
   }
@@ -308,13 +327,13 @@ export default class Migrator {
    *    { name: 'add-cows', filename: '149213223453_add-cows.js', state: 'down' }
    *   ]
    */
-  async list() {
+  async list(printToStdout = this.cli) {
     await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
-    if (!migrations.length) console.log('There are no migrations to list.'.yellow);
+    if (!migrations.length) this.log('There are no migrations to list.'.yellow);
     const migrationStates = [];
     for (const m of migrations){
-      console.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`);
+      this.log(`${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'], ` ${m.filename}`, printToStdout);
       migrationStates.push({ name: m.name, filename: m.filename, state: m.state });
     }
 
@@ -326,8 +345,7 @@ export default class Migrator {
 
 function fileRequired(error) {
   if (error && error.code == 'ENOENT') {
-    console.error(`Could not find any files at path '${error.path}'`);
-    process.exit(1);
+    throw new ReferenceError(`Could not find any files at path '${error.path}'`);
   }
 }
 
