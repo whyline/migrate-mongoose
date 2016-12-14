@@ -90,7 +90,7 @@ If you want to not provide the options such as `--dbConnectionUri` to the progra
 ```
 export MIGRATE_dbConnectionUri=localhost/migrations
 ```
-**2. Provide a config file (defaults to *migrate.json*)**
+**2. Provide a config file (defaults to *migrate.json* or *migrate.js*)**
 ```bash
 # If you have migrate.json in the directory, you don't need to do anything
 migrate list
@@ -100,13 +100,10 @@ migrate list --config somePath/myCustomConfigFile[.json]
 ```
 
 
-**Override Order:**
+### Options Override Order:
+Command line args _beat_ Env vars _beats_ Config File
 
-1. Command line args
-2. Config file
-3. Env var
-
-With lower number taking precedence (winning). 
+Just make sure you don't have aliases of the same option with 2 different values between env vars and config file
 
 
 #### Migration Files

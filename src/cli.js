@@ -1,22 +1,36 @@
 #! /usr/bin/env node
 
-import fs from 'fs';
 import path from 'path';
-import mkdirp from 'mkdirp';
 import yargs from 'yargs';
 import 'colors';
 
 import Migrator from './lib';
 
-'use strict';
-
 let  { argv: args } = yargs
   .usage("Usage: migrate -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]")
   .demand(1)
+  .default('config', 'migrate')
+  .config(
+    'config',
+    'filepath to an options configuration json file',
+    pathToConfigFile => {
+      // Get any args from env vars
+      const envs = process.env;
+      const envVarOptions = {};
+      Object.keys(envs).map((key) => {
+        if (key.includes('MIGRATE_')) {
+          const [, option] = key.match(/MIGRATE_(.*$)/);
+          envVarOptions[option] = envs[key];
+        }
+      });
 
-  .default('config', 'migrate.json')
-  .config('config', 'filepath to an options configuration json file')
-  .env('MIGRATE')
+      let configOptions = {};
+      try {
+        configOptions = require(pathToConfigFile)
+      } catch (err) {}
+      return Object.assign({}, configOptions, envVarOptions);
+    }
+  )
 
   .command('list'.cyan, 'Lists all migrations and their current state.')
   .example('$0 list')

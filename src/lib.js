@@ -339,7 +339,6 @@ export default class Migrator {
     await this.sync();
     const migrations = await MigrationModel.find().sort({ createdAt: 1 });
     if (!migrations.length) this.log('There are no migrations to list.'.yellow);
-    const migrationStates = [];
     return migrations.map((m) => {
       this.log(
         `${m.state == 'up' ? 'UP:  \t' : 'DOWN:\t'}`[m.state == 'up'? 'green' : 'red'] +

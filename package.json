@@ -37,6 +37,6 @@
     "mkdirp": "^0.5.1",
     "mongoose": "^4.4.6",
     "vm2": "git+https://github.com/balmasi/vm2.git",
-    "yargs": "^4.2.0"
+    "yargs": "^4.8.1"
   }
 }
