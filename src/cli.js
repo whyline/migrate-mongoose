@@ -27,7 +27,7 @@ let  { argv: args } = yargs
       let configOptions = {};
       try {
         configOptions = require(pathToConfigFile)
-      } catch (err) {}
+      } catch (err) { /* noop */ }
       return Object.assign({}, configOptions, envVarOptions);
     }
   )

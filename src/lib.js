@@ -6,8 +6,6 @@ import 'colors';
 import mongoose from 'mongoose';
 import _ from 'lodash';
 import ask from 'inquirer';
-import { NodeVM } from 'vm2';
-import { transformFileSync } from 'babel-core';
 
 import MigrationModelFactory from './db';
 let MigrationModel;
@@ -156,22 +154,20 @@ export default class Migrator {
     for (const migration of migrationsToRun) {
       const migrationFilePath = path.join(self.migrationPath, migration.filename);
       const modulesPath = path.resolve(__dirname, '../', 'node_modules');
-      let migrationFunctions;
       let code = fs.readFileSync(migrationFilePath);
       if (this.es6) {
-        code = transformFileSync(migrationFilePath, {
-          extends: path.resolve(__dirname, '../.babelrc')
-        }).code;
+        require('babel-register')({
+          "presets": [require("babel-preset-latest")],
+          "plugins": [require("babel-plugin-transform-runtime")]
+        });
+
+        require('babel-polyfill');
       }
-      const vm = new NodeVM({
-        console: 'inherit',
-        require: {
-          external: true
-        }
-      });
+
+      let migrationFunctions;
 
       try {
-        migrationFunctions = vm.run(code, migrationFilePath);
+        migrationFunctions = require(migrationFilePath);
       } catch (err) {
         err.message = err.message && /Unexpected token/.test(err.message) ?
           'Unexpected Token when parsing migration. If you are using an ES6 migration file, use option --es6' :
