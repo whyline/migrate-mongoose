@@ -77,6 +77,10 @@ export default class Migrator {
     }
   }
 
+  close() {
+    return this.connection ? this.connection.close() : null;
+  }
+
   async create(migrationName) {
     try {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
