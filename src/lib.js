@@ -257,7 +257,7 @@ export default class Migrator {
           name: migrationName,
           createdAt: timestamp
         });
-        return createdMigration.toJSON();
+        return createdMigration;
       });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
