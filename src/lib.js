@@ -228,7 +228,7 @@ export default class Migrator {
       const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js$/.test(file))
         .map(filename => {
           const fileCreatedAt = parseInt(filename.split('-')[0]);
-          const existsInDatabase = !!_.find(migrationsInDatabase, {createdAt: new Date(fileCreatedAt)});
+          const existsInDatabase = migrationsInDatabase.some(m => filename == `${m.createdAt.getTime()}-${m.name}.js`);
           return {createdAt: fileCreatedAt, filename, existsInDatabase};
         });
 
