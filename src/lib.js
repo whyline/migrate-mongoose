@@ -257,11 +257,10 @@ export default class Migrator {
           migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
 
         this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-        const createdMigration = MigrationModel.create({
+        return MigrationModel.create({
           name: migrationName,
           createdAt: timestamp
-        });
-        return createdMigration;
+        }).then(createdMigration => createdMigration.toJSON());
       });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
