@@ -58,12 +58,13 @@ export default class Migrator {
     es6Templates = false,
     collectionName = 'migrations',
     autosync = false,
-    cli = false
+    cli = false,
+    connection
   }) {
     const defaultTemplate = es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
-    this.connection = mongoose.createConnection(dbConnectionUri);
+    this.connection = connection || mongoose.createConnection(dbConnectionUri);
     this.es6 = es6Templates;
     this.collection = collectionName;
     this.autosync = autosync;
@@ -77,10 +78,27 @@ export default class Migrator {
     }
   }
 
-  close() {
-    return this.connection ? this.connection.close() : null;
+  /**
+   * Use your own Mongoose connection object (so you can use this('modelname')
+   * @param {mongoose.connection} connection - Mongoose connection
+   */
+  setMongooseConnection (connection) {
+    MigrationModel = MigrationModelFactory(this.collection, connection)
   }
 
+  /**
+   * Close the underlying connection to mongo
+   * @returns {Promise} A promise that resolves when connection is closed
+   */
+  close() {
+    return this.connection ? this.connection.close() : Promise.resolve();
+  }
+
+  /**
+   * Create a new migration
+   * @param {string} migrationName
+   * @returns {Promise<Object>} A promise of the Migration created
+   */
   async create(migrationName) {
     try {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
@@ -157,8 +175,6 @@ export default class Migrator {
 
     for (const migration of migrationsToRun) {
       const migrationFilePath = path.join(self.migrationPath, migration.filename);
-      const modulesPath = path.resolve(__dirname, '../', 'node_modules');
-      let code = fs.readFileSync(migrationFilePath);
       if (this.es6) {
         require('babel-register')({
           "presets": [require("babel-preset-latest")],
@@ -250,17 +266,18 @@ export default class Migrator {
         migrationsToImport = answers.migrationsToImport;
       }
 
-      return Promise.map(migrationsToImport, (migrationToImport) => {
+      return Promise.map(migrationsToImport, async (migrationToImport) => {
         const filePath = path.join(this.migrationPath, migrationToImport),
           timestampSeparatorIndex = migrationToImport.indexOf('-'),
           timestamp = migrationToImport.slice(0, timestampSeparatorIndex),
           migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
 
         this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-        return MigrationModel.create({
+        const createdMigration = await MigrationModel.create({
           name: migrationName,
           createdAt: timestamp
-        }).then(createdMigration => createdMigration.toJSON());
+        });
+        return createdMigration.toJSON();
       });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
@@ -275,12 +292,12 @@ export default class Migrator {
   async prune() {
     try {
       const filesInMigrationFolder = fs.readdirSync(this.migrationPath);
-      const migrationsInDatabase = await MigrationModel.find({}).lean();
+      const migrationsInDatabase = await MigrationModel.find({});
       // Go over migrations in folder and delete any files not in DB
       const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js/.test(file) )
         .map(filename => {
           const fileCreatedAt = parseInt(filename.split('-')[0]);
-          const existsInDatabase = !!_.find(migrationsInDatabase, { createdAt: new Date(fileCreatedAt) });
+          const existsInDatabase = migrationsInDatabase.some(m => filename == m.filename);
           return { createdAt: fileCreatedAt, filename,  existsInDatabase };
         });
 
