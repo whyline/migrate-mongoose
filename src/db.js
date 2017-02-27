@@ -34,9 +34,6 @@ export default function ( collection = 'migrations', dbConnection ) {
     console.error(`MongoDB Connection Error: ${err}`);
   });
 
-  process.on('SIGINT', () => { dbConnection.close(); });
-  process.on('exit', () => { dbConnection.close(); });
-
   return dbConnection.model( collection, MigrationSchema );
 }
 

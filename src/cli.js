@@ -120,6 +120,19 @@ let migrator = new Migrator({
   cli: true
 });
 
+process.on('SIGINT', () => {
+  migrator.close().then(() => {
+    process.exit(0);
+  });
+});
+
+process.on('exit', () => {
+  // NOTE: This is probably useless since close is async and 'exit' does not wait for the code to finish before
+  // exiting ther process, so it's a race condition between exiting and closing.
+  migrator.close();
+});
+
+
 let promise;
 switch(command) {
   case 'create':

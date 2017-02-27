@@ -77,6 +77,10 @@ export default class Migrator {
     }
   }
 
+  close() {
+    return this.connection ? this.connection.close() : null;
+  }
+
   async create(migrationName) {
     try {
       const existingMigration = await MigrationModel.findOne({ name: migrationName });
@@ -224,7 +228,7 @@ export default class Migrator {
       const migrationsInFolder = _.filter(filesInMigrationFolder, file => /\d{13,}\-.+.js$/.test(file))
         .map(filename => {
           const fileCreatedAt = parseInt(filename.split('-')[0]);
-          const existsInDatabase = !!_.find(migrationsInDatabase, {createdAt: new Date(fileCreatedAt)});
+          const existsInDatabase = migrationsInDatabase.some(m => filename == m.filename);
           return {createdAt: fileCreatedAt, filename, existsInDatabase};
         });
 
@@ -253,11 +257,10 @@ export default class Migrator {
           migrationName = migrationToImport.slice(timestampSeparatorIndex + 1, migrationToImport.lastIndexOf('.'));
 
         this.log(`Adding migration ${filePath} into database from file system. State is ` + `DOWN`.red);
-        const createdMigration = MigrationModel.create({
+        return MigrationModel.create({
           name: migrationName,
           createdAt: timestamp
-        });
-        return createdMigration.toJSON();
+        }).then(createdMigration => createdMigration.toJSON());
       });
     } catch (error) {
       this.log(`Could not synchronise migrations in the migrations folder up to the database.`.red);
