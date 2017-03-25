@@ -30,10 +30,10 @@ migrator.create(migrationName).then(()=> {
 });
 
 // Migrate Up
-promise = migrator.run(migrationName, 'up');
+promise = migrator.run('up', migrationName);
 
 // Migrate Down
-promise = migrator.run(migrationName, 'down');
+promise = migrator.run('down', migrationName);
 
 // List Migrations
 /*
