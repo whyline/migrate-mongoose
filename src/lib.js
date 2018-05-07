@@ -56,6 +56,7 @@ export default class Migrator {
     migrationsPath = './migrations',
     dbConnectionUri,
     es6Templates = false,
+    typescript = false,
     collectionName = 'migrations',
     autosync = false,
     cli = false,
