@@ -200,7 +200,8 @@ export default class Migrator {
 
       if (this.typescript) {
         require("ts-node").register({
-          disableWarnings: true
+          disableWarnings: true,
+          transpileOnly: true
         });
       }
 
