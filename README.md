@@ -1,5 +1,7 @@
 # migrate-mongoose
-A node based migration framework for mongoose
+A node based migration framework for mongoose 
+Fork of [migrate-mongoose](https://github.com/balmasi/migrate-mongoose) with [minimal typescript support](https://github.com/balmasi/migrate-mongoose/pull/27)
+ 
 
 #### Motivation
 migrate-mongoose is a migration framework for projects which are already using mongoose.
