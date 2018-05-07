@@ -1,7 +1,7 @@
 {
-  "name": "migrate-mongoose",
-  "version": "3.2.2",
-  "description": "A mongoose based migration framework for node",
+  "name": "migrate-mongoose-typescript",
+  "version": "3.3.0",
+  "description": "A mongoose based migration framework for node with Typescript support",
   "main": "./dist/lib.js",
   "scripts": {
     "prepublish": "scripts/prepublish.sh",
@@ -17,13 +17,17 @@
     "migration",
     "mongoose",
     "schema",
-    "mongodb"
+    "mongodb",
+    "typescript",
+    "ts",
+    "db",
+    "nosql"
   ],
-  "author": "Borna Almasi <borna@borna-almasi.com>",
+  "author": "Santiago Quinteros <santiago@whyline.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/balmasi/migrate-mongoose.git"
+    "url": "https://github.com/whyline/migrate-mongoose.git"
   },
   "dependencies": {
     "babel-cli": "^6.26.0",
