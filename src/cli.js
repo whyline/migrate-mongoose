@@ -3,9 +3,11 @@
 import path from 'path';
 import yargs from 'yargs';
 import 'colors';
+import dotenv from 'dotenv';
 
 import Migrator from './lib';
 
+dotenv.config();
 let  { argv: args } = yargs
   .usage("Usage: migrate -d <mongo-uri> [[create|up|down <migration-name>]|list] [optional options]")
   .demand(1)

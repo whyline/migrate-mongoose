@@ -86,9 +86,16 @@ Examples:
 #### Setting Options Automatically
 If you want to not provide the options such as `--dbConnectionUri` to the program every time you have 2 options.
 
-**1. Set the option as an Environment Variable with the prefix MIGRATE_**
-```
+**1. Set the option as an Environment Variable with the prefix MIGRATE_**  
+Using a Javascript file:
+```javascript
+//index.js
 export MIGRATE_dbConnectionUri=localhost/migrations
+```
+.env files are also supported:
+```bash
+#.env
+MIGRATE_dbConnectionUri=localhost/migrations
 ```
 **2. Provide a config file (defaults to *migrate.json* or *migrate.js*)**
 ```bash
