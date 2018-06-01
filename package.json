@@ -1,7 +1,7 @@
 {
-  "name": "migrate-mongoose",
-  "version": "3.2.2",
-  "description": "A mongoose based migration framework for node",
+  "name": "migrate-mongoose-typescript",
+  "version": "3.3.2",
+  "description": "A mongoose based migration framework for node with Typescript support",
   "main": "./dist/lib.js",
   "scripts": {
     "prepublish": "scripts/prepublish.sh",
@@ -17,27 +17,31 @@
     "migration",
     "mongoose",
     "schema",
-    "mongodb"
+    "mongodb",
+    "typescript",
+    "ts",
+    "db",
+    "nosql"
   ],
-  "author": "Borna Almasi <borna@borna-almasi.com>",
+  "author": "Santiago Quinteros <santiago@whyline.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/balmasi/migrate-mongoose.git"
+    "url": "https://github.com/whyline/migrate-mongoose.git"
   },
   "dependencies": {
-    "babel-cli": "^6.18.0",
-    "babel-core": "^6.20.0",
-    "babel-plugin-transform-runtime": "^6.15.0",
-    "babel-polyfill": "^6.20.0",
-    "babel-preset-latest": "^6.16.0",
-    "babel-register": "^6.18.0",
-    "bluebird": "^3.3.3",
-    "colors": "^1.1.2",
-    "dotenv": "^5.0.1",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-latest": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "bluebird": "^3.5.1",
+    "colors": "^1.2.4",
     "inquirer": "^0.12.0",
     "mkdirp": "^0.5.1",
-    "mongoose": "^4.4.6",
+    "mongoose": "^4.13.12",
+    "ts-node": "^6.0.3",
     "yargs": "^4.8.1"
   }
 }
