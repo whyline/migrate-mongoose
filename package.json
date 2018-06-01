@@ -23,11 +23,11 @@
     "db",
     "nosql"
   ],
-  "author": "Santiago Quinteros <santiago@whyline.com>",
+  "author": "Ahrnee <ahrndee@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/whyline/migrate-mongoose.git"
+    "url": "https://github.com/ahrnee/migrate-mongoose"
   },
   "dependencies": {
     "babel-cli": "^6.26.0",
@@ -38,6 +38,7 @@
     "babel-register": "^6.26.0",
     "bluebird": "^3.5.1",
     "colors": "^1.2.4",
+    "dotenv": "^5.0.1",
     "inquirer": "^0.12.0",
     "mkdirp": "^0.5.1",
     "mongoose": "^4.13.12",
