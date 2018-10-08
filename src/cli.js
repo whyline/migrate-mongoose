@@ -174,7 +174,7 @@ promise
   .then(() => { process.exit(0); })
   .catch((err) => {
     console.warn(err.message.yellow);
-    if (err === 'There are no migrations to run'){
+    if (err.message === 'There are no migrations to run'){
       process.exit(0);
     }
     process.exit(1);
