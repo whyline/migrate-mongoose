@@ -1,6 +1,6 @@
 {
   "name": "migrate-mongoose-typescript",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "A mongoose based migration framework for node with Typescript support",
   "main": "./dist/lib.js",
   "scripts": {
@@ -24,14 +24,22 @@
     "nosql"
   ],
   "author": "Santiago Quinteros <santiago@whyline.com>",
-  "contributors": [{
-     "name": "Santiago Quinteros",
-     "email": "santiago@whyline.com",
-     "url": "https://github.com/santiq"
-  },{
-     "name": "ahrnee",
-     "url": "https://github.com/ahrnee"
-  }],
+  "contributors": [
+    {
+      "name": "Fernando López Guevara",
+      "email": "fernando.lguevara@propellerheadas.com.ar",
+      "url": "https://github.com/fernandolguevara"
+    },
+    {
+      "name": "Santiago Quinteros",
+      "email": "santiago@whyline.com",
+      "url": "https://github.com/santiq"
+    },
+    {
+      "name": "ahrnee",
+      "url": "https://github.com/ahrnee"
+    }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
