@@ -65,7 +65,15 @@ export default class Migrator {
     const defaultTemplate = typescript || es6Templates ?  es6Template : es5Template;
     this.template = templatePath ? fs.readFileSync(templatePath, 'utf-8') : defaultTemplate;
     this.migrationPath = path.resolve(migrationsPath);
-    this.connection = connection || mongoose.createConnection(dbConnectionUri);
+    this.connection = connection || mongoose.createConnection(dbConnectionUri, {
+      useCreateIndex: true,
+      useFindAndModify: false,
+      useNewUrlParser: true,
+      bufferMaxEntries: 0,
+      keepAlive: true,
+      socketTimeoutMS: 0,
+      useUnifiedTopology: true,
+    });
     this.es6 = es6Templates;
     this.typescript = typescript;
     this.collection = collectionName;
